@@ -1,0 +1,73 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Frikicoments | Resultados</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Resultados</h1>
+      <p>Listado de resultados y búsquedas del proyecto.</p>
+      <div style="margin-top: 14px;">
+        <a href="/" class="btn secondary" style="text-decoration: none; display: inline-block;">&larr; Volver al inicio</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="card" style="margin-top: 20px;">
+        <h2 class="panel-title">Resultados de la búsqueda</h2>
+        <p id="search-query-text" style="margin-bottom: 16px; color: var(--accent); font-size: 0.65rem;"></p>
+        
+        <div id="grid-resultados" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px;">
+          <!-- Aquí se pintarán los juegos automáticamente -->
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const query = params.get('q');
+    const label = document.getElementById('search-query-text');
+    const grid = document.getElementById('grid-resultados');
+
+    if (query) {
+      label.textContent = `Término buscado: "${query}"`;
+      buscarJuegos(query);
+    } else {
+      label.textContent = 'No se ha indicado ningún término de búsqueda.';
+    }
+
+    async function buscarJuegos(termino) {
+      grid.innerHTML = '<p style="font-size:0.65rem; color:var(--muted);">Cargando videojuegos...</p>';
+
+      try {
+        const res = await fetch(`/api/juegos/buscar?q=${encodeURIComponent(termino)}`);
+        const games = await res.json();
+
+        if (!Array.isArray(games) || games.length === 0) {
+          grid.innerHTML = '<p style="font-size:0.65rem; color:#fecaca;">No se encontraron resultados para esta búsqueda.</p>';
+          return;
+        }
+
+        grid.innerHTML = games.map(game => `
+          <div class="stat" style="display: flex; flex-direction: column; justify-content: space-between; gap: 8px;">
+            ${game.background_image ? `<img src="${game.background_image}" alt="${game.name}" style="width: 100%; height: 120px; object-fit: cover; border: 2px solid var(--pixel-border, #000);">` : ''}
+            <div>
+              <strong style="font-size: 0.75rem; color: #f7d51d;">${game.name}</strong>
+              <span style="font-size: 0.6rem; display: block; margin-top: 4px;">Año: ${game.released ? game.released.substring(0, 4) : 'N/D'}</span>
+              <span style="font-size: 0.6rem; color: #50fa7b;">⭐ ${game.rating || 0} / 5</span>
+            </div>
+          </div>
+        `).join('');
+      } catch (error) {
+        grid.innerHTML = '<p style="font-size:0.65rem; color:#fecaca;">Error al conectar con la API de juegos.</p>';
+      }
+    }
+  </script>
+</body>
+</html>

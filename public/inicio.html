@@ -4,9 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Frikicoments</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+    <!-- SECCIÓN BUSCADOR -->
+<section class="card" style="margin-top: 24px;">
+    <h3 class="panel-title">Buscar Videojuegos</h3>
+    <form action="/resultados" method="GET" class="form-box" style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <input type="text" name="q" placeholder="Buscar juego (ej: Zelda, Mario, Cyberpunk)..." style="flex: 1; min-width: 220px;" required>
+        <button class="btn primary" type="submit">Buscar</button>
+    </form>
+</section>
     <div class="container">
         <header>
             <h1>Frikicoments</h1>
