@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameHub Reviews</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>GameHub Reviews</h1>
+            <p>Descubre, comenta y comparte tu opinión sobre los mejores videojuegos.</p>
+        </header>
+
+        <section class="hero">
+            <div class="card featured">
+                <div>
+                    <span class="badge">Trending</span>
+                    <h2>¿Cuál es tu próximo videojuego favorito?</h2>
+                    <p>La comunidad de gamers comparte reseñas, valoraciones y recomendaciones para descubrir joyas ocultas y lanzamientos del momento.</p>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn primary">Ver reseñas</button>
+                    <button class="btn secondary">Añadir comentario</button>
+                </div>
+            </div>
+
+            <div class="stats">
+                <div class="stat card">
+                    <strong>12.4k</strong>
+                    <span>Reseñas publicadas</span>
+                </div>
+                <div class="stat card">
+                    <strong>3.9/5</strong>
+                    <span>Valoración media</span>
+                </div>
+                <div class="stat card">
+                    <strong>1.2k</strong>
+                    <span>Jugadores activos</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="main-grid">
+            <div>
+                <h3 class="panel-title">Últimos comentarios</h3>
+                <div class="comment-list">
+                    <article class="comment">
+                        <div class="comment-header">
+                            <div class="user">
+                                <div class="avatar">A</div>
+                                <div class="username">Alex</div>
+                            </div>
+                            <span class="game-tag">Zelda</span>
+                        </div>
+                        <p>Una experiencia increíble. El diseño de mundo, la historia y la jugabilidad están muy bien cuidados. ¡Definitivamente merece la pena!</p>
+                    </article>
+
+                    <article class="comment">
+                        <div class="comment-header">
+                            <div class="user">
+                                <div class="avatar">M</div>
+                                <div class="username">Marta</div>
+                            </div>
+                            <span class="game-tag">Cyberpunk</span>
+                        </div>
+                        <p>El mundo es enorme y detallado, aunque el inicio se siente algo lento. Cuando entra en marcha, es espectacular.</p>
+                    </article>
+                </div>
+            </div>
+
+            <aside class="sidebar">
+                <div class="card">
+                    <h3 class="panel-title">Deja tu opinión</h3>
+                    <form class="form-box">
+                        <label>
+                            Nombre
+                            <input type="text" placeholder="Tu nombre">
+                        </label>
+
+                        <label>
+                            Juego
+                            <select>
+                                <option>Selecciona un juego</option>
+                                <option>Cyberpunk 2077</option>
+                                <option>The Legend of Zelda</option>
+                                <option>God of War</option>
+                                <option>Halo Infinite</option>
+                            </select>
+                        </label>
+
+                        <label>
+                            Comentario
+                            <textarea placeholder="Escribe tu reseña..."></textarea>
+                        </label>
+
+                        <button class="btn primary" type="button">Publicar comentario</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h3 class="panel-title">Top juegos</h3>
+                    <ul class="list">
+                        <li>1. Elden Ring</li>
+                        <li>2. Zelda: Tears of the Kingdom</li>
+                        <li>3. God of War Ragnarök</li>
+                        <li>4. Horizon Forbidden West</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3 class="panel-title">Estado del sitio</h3>
+                    <span class="status">Servidor activo</span>
+                </div>
+            </aside>
+        </section>
+    </div>
+
+    <script>
+        async function comprobarConexion() {
+            const status = document.querySelector('.status');
+            if (!status) return;
+
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                status.textContent = data.ok ? 'Conexión MySQL OK' : 'MySQL no disponible';
+                status.style.background = data.ok ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.12)';
+                status.style.color = data.ok ? '#bbf7d0' : '#fecaca';
+                status.style.borderColor = data.ok ? 'rgba(34, 197, 94, 0.25)' : 'rgba(239, 68, 68, 0.35)';
+                status.style.setProperty('border-color', data.ok ? 'rgba(34, 197, 94, 0.25)' : 'rgba(239, 68, 68, 0.35)');
+            } catch (error) {
+                status.textContent = 'Sin conexión';
+                status.style.background = 'rgba(239, 68, 68, 0.12)';
+                status.style.color = '#fecaca';
+                status.style.borderColor = 'rgba(239, 68, 68, 0.35)';
+            }
+        }
+
+        comprobarConexion();
+    </script>
+</body>
+</html>
