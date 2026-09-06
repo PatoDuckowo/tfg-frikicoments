@@ -19,11 +19,17 @@ app.get('/', (req, res) => {
 
 // 2. Ruta de resultados
 app.get('/resultados', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.sendFile(path.join(__dirname, 'public', 'resultados.html'));
 });
 
 // 3. Servir archivos estáticos
-app.use(express.static(path.join(__dirname, 'public'), { index: false }));
+app.use(express.static(path.join(__dirname, 'public'), {
+  index: false,
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  }
+}));
 
 // 4. Comprobación MySQL
 app.get('/api/health', async (req, res) => {
@@ -67,20 +73,26 @@ async function getTwitchToken() {
   return igdbToken;
 }
 
-// 5. Endpoint de búsqueda en IGDB
+// 5. Endpoint de búsqueda en IGDB con paginación
 app.get('/api/juegos/buscar', async (req, res) => {
   const query = req.query.q;
-  if (!query) return res.status(400).json({ error: 'Falta término de búsqueda' });
+  const page = parseInt(req.query.page) || 1;
+  const limit = 12;
+  const offset = (page - 1) * limit;
+
+  if (!query) {
+    return res.status(400).json({ error: 'Falta término de búsqueda' });
+  }
 
   try {
     const token = await getTwitchToken();
     const clientId = process.env.IGDB_CLIENT_ID.trim();
 
-    // Consulta en formato APICalypse a IGDB
     const igdbQuery = `
       search "${query.replace(/"/g, '')}";
       fields name, first_release_date, rating, cover.image_id, summary;
-      limit 12;
+      limit ${limit};
+      offset ${offset};
     `;
 
     const igdbRes = await fetch('https://api.igdb.com/v4/games', {
@@ -100,10 +112,12 @@ app.get('/api/juegos/buscar', async (req, res) => {
 
     const games = await igdbRes.json();
 
-    // Normalizar formato de salida para el frontend
     const resultados = games.map(game => ({
+      id: game.id,
       name: game.name,
-      released: game.first_release_date ? new Date(game.first_release_date * 1000).getFullYear().toString() : 'N/D',
+      released: game.first_release_date
+        ? new Date(game.first_release_date * 1000).getFullYear().toString()
+        : 'N/D',
       rating: game.rating ? (game.rating / 20).toFixed(1) : 'N/D',
       background_image: game.cover && game.cover.image_id
         ? `https://images.igdb.com/igdb/image/upload/t_cover_big/${game.cover.image_id}.jpg`

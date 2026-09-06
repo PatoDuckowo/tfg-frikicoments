@@ -1,73 +1,111 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Frikicoments | Resultados</title>
-  <link rel="stylesheet" href="/css/styles.css">
+  <title>Resultados de Búsquedas</title>
+  
+  <!-- Fuente Pixel Art -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  
+  <!-- Estilos CSS externos -->
+  <link rel="stylesheet" href="/css/styles.css?v=20260831-1">
+  <link rel="stylesheet" href="/css/catalogo.css?v=20260831-1">
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>Resultados</h1>
-      <p>Listado de resultados y búsquedas del proyecto.</p>
-      <div style="margin-top: 14px;">
-        <a href="/" class="btn secondary" style="text-decoration: none; display: inline-block;">&larr; Volver al inicio</a>
-      </div>
-    </header>
 
-    <main>
-      <section class="card" style="margin-top: 20px;">
-        <h2 class="panel-title">Resultados de la búsqueda</h2>
-        <p id="search-query-text" style="margin-bottom: 16px; color: var(--accent); font-size: 0.65rem;"></p>
-        
-        <div id="grid-resultados" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px;">
-          <!-- Aquí se pintarán los juegos automáticamente -->
-        </div>
-      </section>
-    </main>
-  </div>
+  <header>
+    <h1>Resultados para: <span id="query-title"></span></h1>
+    <a href="/" class="btn-volver" style="color: #d12237 !important;">← Volver al inicio </a>
+  </header>
+
+  <main>
+    <div id="grid-juegos" class="grid">
+      <p class="status-msg">Buscando videojuegos...</p>
+    </div>
+
+    <div class="paginacion">
+      <button id="btn-prev" class="btn-pag">← Anterior</button>
+      <span id="num-pagina">Página 1</span>
+      <button id="btn-next" class="btn-pag">Siguiente →</button>
+    </div>
+  </main>
 
   <script>
     const params = new URLSearchParams(window.location.search);
-    const query = params.get('q');
-    const label = document.getElementById('search-query-text');
-    const grid = document.getElementById('grid-resultados');
+    const query = params.get('q') || '';
+    let currentPage = parseInt(params.get('page')) || 1;
 
-    if (query) {
-      label.textContent = `Término buscado: "${query}"`;
-      buscarJuegos(query);
-    } else {
-      label.textContent = 'No se ha indicado ningún término de búsqueda.';
-    }
+    document.getElementById('query-title').textContent = query ? `"${query}"` : '(vacío)';
+    document.getElementById('num-pagina').textContent = `Página ${currentPage}`;
 
-    async function buscarJuegos(termino) {
-      grid.innerHTML = '<p style="font-size:0.65rem; color:var(--muted);">Cargando videojuegos...</p>';
+    const btnPrev = document.getElementById('btn-prev');
+    const btnNext = document.getElementById('btn-next');
+    const grid = document.getElementById('grid-juegos');
+
+    btnPrev.disabled = currentPage <= 1;
+
+    btnPrev.addEventListener('click', () => {
+      if (currentPage > 1) {
+        window.location.href = `/resultados?q=${encodeURIComponent(query)}&page=${currentPage - 1}`;
+      }
+    });
+
+    btnNext.addEventListener('click', () => {
+      window.location.href = `/resultados?q=${encodeURIComponent(query)}&page=${currentPage + 1}`;
+    });
+
+    async function cargarResultados() {
+      if (!query) {
+        grid.innerHTML = '<p class="status-msg">No se especificó ningún término de búsqueda.</p>';
+        btnPrev.disabled = true;
+        btnNext.disabled = true;
+        return;
+      }
 
       try {
-        const res = await fetch(`/api/juegos/buscar?q=${encodeURIComponent(termino)}`);
-        const games = await res.json();
+        const res = await fetch(`/api/juegos/buscar?q=${encodeURIComponent(query)}&page=${currentPage}`);
+        const juegos = await res.json();
 
-        if (!Array.isArray(games) || games.length === 0) {
-          grid.innerHTML = '<p style="font-size:0.65rem; color:#fecaca;">No se encontraron resultados para esta búsqueda.</p>';
+        if (!Array.isArray(juegos) || juegos.length === 0) {
+          grid.innerHTML = '<p class="status-msg">No se encontraron más resultados.</p>';
+          btnNext.disabled = true;
           return;
         }
 
-        grid.innerHTML = games.map(game => `
-          <div class="stat" style="display: flex; flex-direction: column; justify-content: space-between; gap: 8px;">
-            ${game.background_image ? `<img src="${game.background_image}" alt="${game.name}" style="width: 100%; height: 120px; object-fit: cover; border: 2px solid var(--pixel-border, #000);">` : ''}
-            <div>
-              <strong style="font-size: 0.75rem; color: #f7d51d;">${game.name}</strong>
-              <span style="font-size: 0.6rem; display: block; margin-top: 4px;">Año: ${game.released ? game.released.substring(0, 4) : 'N/D'}</span>
-              <span style="font-size: 0.6rem; color: #50fa7b;">⭐ ${game.rating || 0} / 5</span>
+        if (juegos.length < 12) {
+          btnNext.disabled = true;
+        }
+
+        grid.innerHTML = '';
+        juegos.forEach(juego => {
+          const imagenUrl = juego.background_image || 'https://via.placeholder.com/260x330?text=Sin+Caratula';
+          
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.innerHTML = `
+            <div class="card-cover">
+              <img src="${imagenUrl}" alt="${juego.name}" loading="lazy">
             </div>
-          </div>
-        `).join('');
-      } catch (error) {
-        grid.innerHTML = '<p style="font-size:0.65rem; color:#fecaca;">Error al conectar con la API de juegos.</p>';
+            <div class="card-body">
+              <div class="card-title" title="${juego.name}">${juego.name}</div>
+              <div class="card-meta">
+                <span>${juego.released || 'N/A'}</span>
+                <span class="rating">★ ${juego.rating}</span>
+              </div>
+            </div>
+          `;
+          grid.appendChild(card);
+        });
+
+      } catch (err) {
+        grid.innerHTML = `<p class="status-msg" style="color: var(--accent-red, #ef4444);">Error al cargar resultados: ${err.message}</p>`;
       }
     }
+
+    cargarResultados();
   </script>
 </body>
 </html>

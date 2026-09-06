@@ -54,6 +54,28 @@ header h1 {
   line-height: 1.4;
 }
 
+header .btn-volver,
+header .btn-volver:visited {
+  display: inline-block;
+  padding: 8px 16px;
+  color: #d12237 !important;
+  text-decoration: none;
+  font-size: 0.75rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+header .btn-volver:hover {
+  background-color: #0c1222;
+  color: #f7d51d;
+}
+
+a.btn-volver:active {
+  transform: translate(2px, 2px);
+}
+
 header p {
   margin: 14px 0 0;
   color: var(--muted);
