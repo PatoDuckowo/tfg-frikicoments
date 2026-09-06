@@ -66,7 +66,7 @@ El proyecto está alojado en una **Raspberry Pi**. Para poder acceder a él desd
 
 Actualmente se puede acceder a la aplicación mediante:
 
-https://castorcito.azules-quillback.ts.net/
+"Aquí ira el autentico enlace que tenemos con Taiscale"
 
 La Raspberry Pi ejecuta el servidor Node.js y Tailscale permite acceder a él usando esa dirección.
 
