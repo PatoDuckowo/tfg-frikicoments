@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Administrar usuarios - Frikicoments</title>
+  <title>Invitar usuario - Frikicoments</title>
   <link rel="stylesheet" href="../css/styles.css">
 </head>
 <body>
   <main class="container">
     <header>
-      <h1>Administrar usuarios</h1>
-      <p>Solo el administrador puede crear cuentas. Las contraseñas se guardan como hash en MySQL.</p>
+      <h1>Invitar usuario</h1>
+      <p>Solo una persona con sesión iniciada puede crear una cuenta. No hay registro público.</p>
     </header>
 
     <section class="card">
@@ -18,13 +18,13 @@
         <label for="usuario">Nombre de usuario</label>
         <input id="usuario" name="usuario" type="text" minlength="3" autocomplete="username" required>
 
-        <label for="contrasena">Contraseña inicial</label>
+        <label for="contrasena">Contraseña inicial para la persona invitada</label>
         <input id="contrasena" name="contrasena" type="password" minlength="8" autocomplete="new-password" required>
 
         <label for="confirmar-contrasena">Repetir contraseña</label>
         <input id="confirmar-contrasena" name="confirmar-contrasena" type="password" minlength="8" autocomplete="new-password" required>
 
-        <button class="btn primary" type="submit">Crear usuario</button>
+        <button class="btn primary" type="submit">Crear cuenta invitada</button>
         <p class="auth-message" id="mensaje" role="status" aria-live="polite"></p>
       </form>
     </section>
@@ -59,7 +59,7 @@
         if (!respuesta.ok) throw new Error(datos.error || 'No se pudo crear el usuario.');
 
         formulario.reset();
-        mensaje.textContent = 'Usuario creado en MySQL. La contraseña se guardó como hash bcrypt.';
+        mensaje.textContent = 'Cuenta creada en MySQL. Comparte las credenciales iniciales solo con la persona invitada.';
       } catch (error) {
         mensaje.textContent = error.message;
         mensaje.classList.add('error');

@@ -25,7 +25,7 @@
                 </form>
                 <div class="account-actions" id="account-actions" hidden>
                     <span class="account-name" id="account-name"></span>
-                    <a class="btn primary" id="admin-link" href="/usuarios/crear-usuario.html" hidden>Administrar usuarios</a>
+                    <a class="btn primary" id="invite-link" href="/usuarios/invitar-usuario.html">Invitar usuario</a>
                     <button class="btn secondary" id="logout-button" type="button">Cerrar sesión</button>
                 </div>
             </nav>
@@ -168,7 +168,6 @@
         const contenidoPrincipal = document.querySelector('#contenido-principal');
         const accionesCuenta = document.querySelector('#account-actions');
         const nombreCuenta = document.querySelector('#account-name');
-        const enlaceAdmin = document.querySelector('#admin-link');
         const listaComentarios = document.querySelector('#comment-list');
         const formularioComentario = document.querySelector('#form-comentario');
         const mensajeComentario = document.querySelector('#comentario-mensaje');
@@ -224,7 +223,6 @@
 
                 const datos = await respuesta.json();
                 nombreCuenta.textContent = `Sesión: ${datos.usuario}`;
-                enlaceAdmin.hidden = datos.rol !== 'admin';
                 formularioLogin.hidden = true;
                 accionesCuenta.hidden = false;
                 contenidoPrincipal.hidden = false;

@@ -38,7 +38,7 @@ La idea principal es recuperar el estilo de los foros clásicos de Internet: un 
 
 La página principal permite buscar videojuegos. El servidor recibe la búsqueda, consulta la API de IGDB y devuelve los resultados para mostrarlos en la página.
 
-La aplicación guarda las cuentas y comentarios en MySQL. Las contraseñas se guardan como hashes bcrypt. El formulario «Administrar usuarios» solo permite altas a un administrador; las cuentas nuevas tienen rol `usuario`. Los archivos adjuntos se implementarán aparte: el archivo irá al disco y MySQL guardará sus metadatos.
+La aplicación guarda las cuentas y comentarios en MySQL. Las contraseñas se guardan como hashes bcrypt. No hay registro público: para abrir «Invitar usuario» y crear otra cuenta, la persona que invita debe haber iniciado sesión. La cuenta invitada recibe el rol `usuario`; su contraseña inicial la define quien la invita y se le debe compartir de forma privada. Los archivos adjuntos se implementarán aparte: el archivo irá al disco y MySQL guardará sus metadatos.
 
 ### Inicializar MySQL en una instalación nueva
 
@@ -53,8 +53,8 @@ El script crea las tablas `usuarios` y `comentarios`, guarda el admin con bcrypt
 
 ### Prueba de extremo a extremo
 
-1. Inicia sesión con el administrador configurado en `.env`.
-2. Abre «Administrar usuarios» y crea una cuenta de prueba con una contraseña de al menos 8 caracteres.
+1. Inicia sesión con una cuenta existente (el administrador inicial está configurado en `.env`).
+2. Abre «Invitar usuario» y crea una cuenta de prueba con una contraseña de al menos 8 caracteres.
 3. Cierra sesión, inicia con la cuenta de prueba y publica un comentario de prueba.
 4. Recarga la página: el comentario debe seguir apareciendo porque quedó guardado en MySQL.
 

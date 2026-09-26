@@ -38,18 +38,6 @@ function requerirInicioSesion(req, res, next) {
   next();
 }
 
-function requerirAdministrador(req, res, next) {
-  requerirInicioSesion(req, res, () => {
-    if (req.rol === 'admin') return next();
-
-    if (req.path.startsWith('/api/')) {
-      return res.status(403).json({ error: 'Acceso reservado al administrador.' });
-    }
-
-    res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
-  });
-}
-
 app.post('/api/usuarios/login', async (req, res) => {
   const usuario = String(req.body.usuario || '').trim();
   const contrasena = String(req.body.contrasena || '');
@@ -86,7 +74,8 @@ app.get('/api/usuarios/me', requerirInicioSesion, (req, res) => {
   res.json({ id: req.usuarioId, usuario: req.usuario, rol: req.rol });
 });
 
-app.post('/api/usuarios/registro', requerirAdministrador, async (req, res) => {
+// No hay registro público: una cuenta existente debe iniciar sesión para invitar a otra.
+app.post('/api/usuarios/registro', requerirInicioSesion, async (req, res) => {
   const usuario = String(req.body.usuario || '').trim();
   const contrasena = String(req.body.contrasena || '');
 
@@ -181,7 +170,7 @@ app.get('/usuarios/mi-cuenta.html', requerirInicioSesion, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'usuarios', 'mi-cuenta.html'));
 });
 
-app.get('/usuarios/crear-usuario.html', requerirAdministrador, (req, res) => {
+app.get(['/usuarios/crear-usuario.html', '/usuarios/invitar-usuario.html'], requerirInicioSesion, (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.sendFile(path.join(__dirname, 'public', 'usuarios', 'crear-usuario.html'));
 });
