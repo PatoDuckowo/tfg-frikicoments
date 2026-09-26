@@ -38,16 +38,24 @@ La idea principal es recuperar el estilo de los foros clásicos de Internet: un 
 
 La página principal permite buscar videojuegos. El servidor recibe la búsqueda, consulta la API de IGDB y devuelve los resultados para mostrarlos en la página.
 
-El proyecto también tiene preparada la conexión con MySQL mediante el archivo `db.js`. El inicio de sesión de demostración comprueba un usuario y una contraseña configurados en `.env`, y crea una sesión temporal en memoria. La página «Mi cuenta» requiere esa sesión. Esta versión no registra usuarios ni guarda sus datos en MySQL.
+El proyecto también tiene preparada la conexión con MySQL mediante el archivo `db.js`. El inicio de sesión permite autorizar manualmente varias cuentas desde `usuarios.json`, en la carpeta raíz del servidor. Ese archivo no se publica ni se sirve al navegador. Si no existe, se usa la cuenta de demostración configurada en `.env`. La sesión es temporal y se guarda en memoria; no hay registro público ni cuentas en MySQL.
 
-Añade estas variables a tu archivo `.env` local (no lo subas a Git):
+Para crear usuarios manualmente, copia `usuarios.example.json` como `usuarios.json` junto a `server.js` y escribe solo las cuentas que quieras autorizar:
 
-```env
-LOGIN_USERNAME=tu_usuario
-LOGIN_PASSWORD=tu_contrasena
+```json
+[
+	{
+		"usuario": "nombre_que_autorizas",
+		"contrasena": "clave_privada"
+	},
+	{
+		"usuario": "otra_persona",
+		"contrasena": "otra_clave_privada"
+	}
+]
 ```
 
-El usuario y la contraseña los lee el servidor en `server.js`; no se envían al HTML. Configura los valores reales como variables privadas en el servidor donde alojes la aplicación; no incluyas la contraseña en GitHub. Las sesiones duran ocho horas y se pierden al reiniciar Node.js, por lo que esta solución es solo para aprender y probar. Para publicar el sitio, conviene guardar usuarios en MySQL y contraseñas como hashes con bcrypt.
+Guarda `usuarios.json` también en la Raspberry Pi: `.gitignore` evita que se suba a GitHub. Puedes añadir o quitar cuentas editando esa lista; los cambios se leen en el siguiente intento de inicio de sesión. En esta versión las claves están en texto plano dentro de un archivo privado, adecuado solo para una prueba controlada. Para un sitio público, deben guardarse como hashes con bcrypt.
 
 ## Ejecución en local
 

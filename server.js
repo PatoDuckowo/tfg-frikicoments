@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const crypto = require('crypto');
 const { pool } = require('./db');
 
@@ -35,17 +36,47 @@ function requerirInicioSesion(req, res, next) {
   next();
 }
 
+function obtenerUsuariosAutorizados() {
+  const archivoUsuarios = path.join(__dirname, 'usuarios.json');
+
+  if (fs.existsSync(archivoUsuarios)) {
+    const usuarios = JSON.parse(fs.readFileSync(archivoUsuarios, 'utf8'));
+    if (!Array.isArray(usuarios)) {
+      throw new Error('usuarios.json debe contener una lista de usuarios.');
+    }
+    return usuarios;
+  }
+
+  // Compatibilidad con la cuenta de demostración configurada en .env.
+  if (process.env.LOGIN_USERNAME && process.env.LOGIN_PASSWORD) {
+    return [{ usuario: process.env.LOGIN_USERNAME, contrasena: process.env.LOGIN_PASSWORD }];
+  }
+
+  return [];
+}
+
 app.post('/api/usuarios/login', (req, res) => {
   const usuario = String(req.body.usuario || '').trim();
   const contrasena = String(req.body.contrasena || '');
-  const usuarioConfigurado = process.env.LOGIN_USERNAME;
-  const contrasenaConfigurada = process.env.LOGIN_PASSWORD;
+  let usuariosAutorizados;
 
-  if (!usuarioConfigurado || !contrasenaConfigurada) {
-    return res.status(503).json({ error: 'Falta configurar LOGIN_USERNAME y LOGIN_PASSWORD en .env.' });
+  try {
+    usuariosAutorizados = obtenerUsuariosAutorizados();
+  } catch (error) {
+    console.error('No se pudo leer usuarios.json:', error.message);
+    return res.status(500).json({ error: 'No se pudo leer la lista privada de usuarios.' });
   }
 
-  if (usuario !== usuarioConfigurado || contrasena !== contrasenaConfigurada) {
+  if (usuariosAutorizados.length === 0) {
+    return res.status(503).json({ error: 'No hay usuarios configurados en usuarios.json ni en .env.' });
+  }
+
+  const accesoPermitido = usuariosAutorizados.some(cuenta =>
+    cuenta && typeof cuenta.usuario === 'string' && typeof cuenta.contrasena === 'string'
+    && cuenta.usuario.trim() === usuario && cuenta.contrasena === contrasena
+  );
+
+  if (!accesoPermitido) {
     return res.status(401).json({ error: 'Usuario o contraseña incorrectos.' });
   }
 
