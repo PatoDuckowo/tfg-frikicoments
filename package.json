@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "db:init": "node scripts/inicializar-base-datos.js"
+    "db:init": "node scripts/inicializar-base-datos.js",
+    "db:reset-admin": "node scripts/restablecer-admin.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

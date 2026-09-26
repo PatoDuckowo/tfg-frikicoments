@@ -51,6 +51,8 @@ npm run db:init
 
 El script crea las tablas `usuarios` y `comentarios`, guarda el admin con bcrypt e importa las cuentas existentes de `usuarios.json` como hashes, si el archivo privado está presente. Las cuentas duplicadas no se sobrescriben. Conserva el JSON privado hasta comprobar que las cuentas importadas pueden iniciar sesión; nunca lo subas a GitHub.
 
+Si se olvida la contraseña del admin, cambia `LOGIN_PASSWORD` en `.env` y ejecuta `npm run db:reset-admin`; el comando actualiza el hash bcrypt de `LOGIN_USERNAME` sin mostrar la contraseña.
+
 ### Prueba de extremo a extremo
 
 1. Inicia sesión con una cuenta existente (el administrador inicial está configurado en `.env`).
