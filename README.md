@@ -75,7 +75,7 @@ El proyecto está alojado en una **Raspberry Pi**. Para poder acceder a él desd
 
 Actualmente se puede acceder a la aplicación mediante:
 
-https://castorcito.azules-quillback.ts.net/
+"Aquí ira el autentico enlace que tenemos con Taiscale"
 
 La Raspberry Pi ejecuta el servidor Node.js y Tailscale permite acceder a él usando esa dirección.
 
@@ -85,7 +85,7 @@ La finalidad del proyecto es crear una pequeña comunidad de videojuegos con el 
 
 Como próximas mejoras se plantean:
 
-- Registro e inicio de sesión.
+- Registro y autenticación persistente de usuarios en MySQL.
 - Perfiles de usuario.
 - Creación de hilos y respuestas.
 - Publicación de reseñas.

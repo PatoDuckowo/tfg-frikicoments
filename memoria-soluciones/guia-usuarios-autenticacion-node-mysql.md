@@ -150,6 +150,8 @@ Solo cuando la API esté comprobada, crea `usuarios.html` y conecta sus formular
 
 ## 4. Base de datos MySQL
 
+## 3. Base de datos MySQL
+
 Crear una base de datos y una tabla para los usuarios. El email será único para impedir cuentas duplicadas.
 
 Archivo `sql/usuarios.sql`:
@@ -177,7 +179,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
 
 No se debe crear una columna llamada `password` para guardar la contraseña original. La columna `password_hash` contiene únicamente el resultado de `bcrypt`.
 
-## 5. Configuración del entorno
+## 4. Configuración del entorno
 
 Instalar las dependencias desde la carpeta del proyecto:
 
@@ -213,7 +215,7 @@ SESSION_SECRET=
 
 Añadir `.env` a `.gitignore` para no publicar credenciales.
 
-## 6. Sesiones de usuario
+## 5. Sesiones de usuario
 
 Para una aplicación web tradicional, una sesión almacenada en una cookie `httpOnly` es una opción clara y sencilla:
 
@@ -256,7 +258,7 @@ app.use(session({
 
 En producción, la aplicación debe funcionar con HTTPS para que `secure: true` proteja la cookie.
 
-## 7. Middleware para rutas privadas
+## 6. Middleware para rutas privadas
 
 Archivo `middleware/auth.js`:
 
@@ -272,7 +274,7 @@ function requireAuth(req, res, next) {
 module.exports = { requireAuth };
 ```
 
-## 8. Endpoints necesarios
+## 7. Endpoints necesarios
 
 | Método | Ruta | Privada | Función |
 |---|---|---:|---|
@@ -392,7 +394,7 @@ req.session.destroy(() => {
 });
 ```
 
-## 9. Ventana de usuarios
+## 8. Ventana de usuarios
 
 Crear `public/usuarios.html` con tres estados o formularios:
 
@@ -419,7 +421,7 @@ if (!response.ok) {
 
 La interfaz debe mostrar mensajes de error sin imprimir contraseñas ni hashes. Las validaciones del navegador mejoran la experiencia, pero el servidor debe repetirlas porque las validaciones del frontend se pueden saltar.
 
-## 10. Orden de implementación
+## 9. Orden de implementación
 
 1. Crear la base de datos y ejecutar `sql/usuarios.sql`.
 2. Configurar `.env` y comprobar `GET /api/health`.
@@ -432,7 +434,7 @@ La interfaz debe mostrar mensajes de error sin imprimir contraseñas ni hashes. 
 9. Probar errores: email duplicado, contraseña incorrecta, sesión ausente y contraseña actual incorrecta.
 10. Probar todo mediante HTTPS antes de desplegarlo.
 
-## 11. Opciones de almacenamiento gratuitas
+## 10. Opciones de almacenamiento gratuitas
 
 ### MySQL local o MariaDB
 
@@ -448,7 +450,7 @@ SQLite es completamente gratuito y no necesita un servidor separado. Es una buen
 
 **Recomendación:** usar MySQL o MariaDB localmente durante el desarrollo. Para publicar, usar un MySQL compatible con copias de seguridad y revisar el plan gratuito vigente del proveedor elegido.
 
-## 12. Seguridad mínima
+## 11. Seguridad mínima
 
 - No guardar contraseñas en texto plano.
 - No subir `.env` a Git.
@@ -462,7 +464,7 @@ SQLite es completamente gratuito y no necesita un servidor separado. Es una buen
 - Añadir protección CSRF si se incorporan operaciones sensibles con cookies de sesión.
 - Hacer copias de seguridad de la base de datos.
 
-## 13. ¿Cuándo usar PHP?
+## 12. ¿Cuándo usar PHP?
 
 PHP solo sería necesario si el proyecto se desplegara en un hosting pensado para PHP o si se quisiera construir el backend completo con PHP. En el proyecto actual no aporta una ventaja: ya existe un servidor Express y una conexión MySQL funcional.
 
