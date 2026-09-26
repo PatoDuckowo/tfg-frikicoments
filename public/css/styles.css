@@ -107,6 +107,7 @@ header p {
 
 #contenido-principal[hidden],
 #account-actions[hidden],
+#admin-link[hidden],
 #login-form[hidden] {
   display: none;
 }

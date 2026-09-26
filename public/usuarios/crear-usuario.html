@@ -3,35 +3,68 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crear usuario - Frikicoments</title>
+  <title>Administrar usuarios - Frikicoments</title>
   <link rel="stylesheet" href="../css/styles.css">
 </head>
 <body>
   <main class="container">
     <header>
-      <h1>Crear usuario</h1>
-      <p>Formulario para registrar una nueva cuenta.</p>
+      <h1>Administrar usuarios</h1>
+      <p>Esta herramienta está reservada al administrador.</p>
     </header>
 
     <section class="card">
-      <form class="form-box" action="#" method="post">
-        <label for="nombre">Nombre de usuario</label>
-        <input id="nombre" name="nombre" type="text" placeholder="Escribe tu nombre">
+      <form class="form-box" id="form-crear-usuario">
+        <label for="usuario">Nombre de usuario</label>
+        <input id="usuario" name="usuario" type="text" minlength="3" autocomplete="username" required>
 
-        <label for="email">Correo electrónico</label>
-        <input id="email" name="email" type="email" placeholder="usuario@correo.com">
+        <label for="contrasena">Contraseña inicial</label>
+        <input id="contrasena" name="contrasena" type="password" minlength="8" autocomplete="new-password" required>
 
-        <label for="password">Contraseña</label>
-        <input id="password" name="password" type="password" placeholder="Escribe una contraseña">
-
-        <label for="confirmar-password">Repetir contraseña</label>
-        <input id="confirmar-password" name="confirmar-password" type="password" placeholder="Repite la contraseña">
+        <label for="confirmar-contrasena">Repetir contraseña</label>
+        <input id="confirmar-contrasena" name="confirmar-contrasena" type="password" minlength="8" autocomplete="new-password" required>
 
         <button class="btn primary" type="submit">Crear usuario</button>
+        <p class="auth-message" id="mensaje" role="status" aria-live="polite"></p>
       </form>
     </section>
 
-    <p><a class="btn-volver" href="usuarios.html">Volver a usuarios</a></p>
+    <p><a class="btn-volver" href="../inicio.html">Volver al inicio</a></p>
   </main>
+  <script>
+    const formulario = document.querySelector('#form-crear-usuario');
+    const mensaje = document.querySelector('#mensaje');
+
+    formulario.addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      mensaje.classList.remove('error');
+
+      if (formulario.contrasena.value !== formulario['confirmar-contrasena'].value) {
+        mensaje.textContent = 'Las contraseñas no coinciden.';
+        mensaje.classList.add('error');
+        return;
+      }
+
+      try {
+        const respuesta = await fetch('/api/usuarios/registro', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            usuario: formulario.usuario.value,
+            contrasena: formulario.contrasena.value
+          })
+        });
+        const datos = await respuesta.json();
+        if (!respuesta.ok) throw new Error(datos.error || 'No se pudo crear el usuario.');
+
+        formulario.reset();
+        mensaje.textContent = 'Usuario creado. Solo podrá acceder quien tenga estas credenciales.';
+      } catch (error) {
+        mensaje.textContent = error.message;
+        mensaje.classList.add('error');
+      }
+    });
+  </script>
 </body>
 </html>

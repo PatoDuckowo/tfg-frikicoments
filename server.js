@@ -33,26 +33,50 @@ function requerirInicioSesion(req, res, next) {
   }
 
   req.usuario = sesion.usuario;
+  req.rol = sesion.rol || 'usuario';
   next();
+}
+
+function requerirAdministrador(req, res, next) {
+  requerirInicioSesion(req, res, () => {
+    if (req.rol === 'admin') return next();
+
+    if (req.path.startsWith('/api/')) {
+      return res.status(403).json({ error: 'Acceso reservado al administrador.' });
+    }
+
+    res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
+  });
 }
 
 function obtenerUsuariosAutorizados() {
   const archivoUsuarios = path.join(__dirname, 'usuarios.json');
+  let usuarios = [];
 
   if (fs.existsSync(archivoUsuarios)) {
-    const usuarios = JSON.parse(fs.readFileSync(archivoUsuarios, 'utf8'));
+    usuarios = JSON.parse(fs.readFileSync(archivoUsuarios, 'utf8'));
     if (!Array.isArray(usuarios)) {
       throw new Error('usuarios.json debe contener una lista de usuarios.');
     }
-    return usuarios;
   }
 
-  // Compatibilidad con la cuenta de demostración configurada en .env.
+  // La cuenta fijada en .env siempre es administradora y puede gestionar la lista.
   if (process.env.LOGIN_USERNAME && process.env.LOGIN_PASSWORD) {
-    return [{ usuario: process.env.LOGIN_USERNAME, contrasena: process.env.LOGIN_PASSWORD }];
+    const indiceAdmin = usuarios.findIndex(cuenta =>
+      cuenta && typeof cuenta.usuario === 'string'
+      && cuenta.usuario.trim().toLowerCase() === process.env.LOGIN_USERNAME.trim().toLowerCase()
+    );
+    const administrador = {
+      usuario: process.env.LOGIN_USERNAME.trim(),
+      contrasena: process.env.LOGIN_PASSWORD,
+      rol: 'admin'
+    };
+
+    if (indiceAdmin >= 0) usuarios[indiceAdmin] = administrador;
+    else usuarios.push(administrador);
   }
 
-  return [];
+  return usuarios;
 }
 
 app.post('/api/usuarios/login', (req, res) => {
@@ -71,24 +95,59 @@ app.post('/api/usuarios/login', (req, res) => {
     return res.status(503).json({ error: 'No hay usuarios configurados en usuarios.json ni en .env.' });
   }
 
-  const accesoPermitido = usuariosAutorizados.some(cuenta =>
+  const cuentaAutorizada = usuariosAutorizados.find(cuenta =>
     cuenta && typeof cuenta.usuario === 'string' && typeof cuenta.contrasena === 'string'
-    && cuenta.usuario.trim() === usuario && cuenta.contrasena === contrasena
+    && cuenta.usuario.trim().toLowerCase() === usuario.toLowerCase() && cuenta.contrasena === contrasena
   );
 
-  if (!accesoPermitido) {
+  if (!cuentaAutorizada) {
     return res.status(401).json({ error: 'Usuario o contraseña incorrectos.' });
   }
 
+  const esAdministrador = cuentaAutorizada.rol === 'admin';
   const token = crypto.randomBytes(32).toString('hex');
-  sesiones.set(token, { usuario, expiraEn: Date.now() + duracionSesionMs });
+  sesiones.set(token, {
+    usuario: cuentaAutorizada.usuario.trim(),
+    rol: esAdministrador ? 'admin' : 'usuario',
+    expiraEn: Date.now() + duracionSesionMs
+  });
   const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
   res.setHeader('Set-Cookie', `frikicoments_session=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=28800${secure}`);
   res.json({ ok: true });
 });
 
 app.get('/api/usuarios/me', requerirInicioSesion, (req, res) => {
-  res.json({ usuario: req.usuario });
+  res.json({ usuario: req.usuario, rol: req.rol });
+});
+
+app.post('/api/usuarios/registro', requerirAdministrador, (req, res) => {
+  const usuario = String(req.body.usuario || '').trim();
+  const contrasena = String(req.body.contrasena || '');
+
+  if (usuario.length < 3 || contrasena.length < 8) {
+    return res.status(400).json({ error: 'El usuario debe tener 3 caracteres y la contraseña al menos 8.' });
+  }
+
+  try {
+    const usuarios = obtenerUsuariosAutorizados();
+    const yaExiste = usuarios.some(cuenta =>
+      cuenta && typeof cuenta.usuario === 'string'
+      && cuenta.usuario.trim().toLowerCase() === usuario.toLowerCase()
+    );
+
+    if (yaExiste) return res.status(409).json({ error: 'Ese nombre de usuario ya está autorizado.' });
+
+    usuarios.push({ usuario, contrasena, rol: 'usuario' });
+    fs.writeFileSync(
+      path.join(__dirname, 'usuarios.json'),
+      `${JSON.stringify(usuarios, null, 2)}\n`,
+      { encoding: 'utf8', mode: 0o600 }
+    );
+    res.status(201).json({ ok: true });
+  } catch (error) {
+    console.error('No se pudo actualizar usuarios.json:', error.message);
+    res.status(500).json({ error: 'No se pudo guardar el usuario en la lista privada.' });
+  }
 });
 
 app.post('/api/usuarios/logout', (req, res) => {
@@ -122,6 +181,11 @@ app.get('/resultados.html', requerirInicioSesion, (req, res) => {
 app.get('/usuarios/mi-cuenta.html', requerirInicioSesion, (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.sendFile(path.join(__dirname, 'public', 'usuarios', 'mi-cuenta.html'));
+});
+
+app.get('/usuarios/crear-usuario.html', requerirAdministrador, (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.sendFile(path.join(__dirname, 'public', 'usuarios', 'crear-usuario.html'));
 });
 
 // 3. Servir archivos estáticos
