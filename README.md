@@ -38,26 +38,27 @@ La idea principal es recuperar el estilo de los foros clásicos de Internet: un 
 
 La página principal permite buscar videojuegos. El servidor recibe la búsqueda, consulta la API de IGDB y devuelve los resultados para mostrarlos en la página.
 
-El proyecto también tiene preparada la conexión con MySQL mediante el archivo `db.js`. El inicio de sesión permite autorizar manualmente varias cuentas desde `usuarios.json`, en la carpeta raíz del servidor. Ese archivo no se publica ni se sirve al navegador. Si no existe, se usa la cuenta configurada en `.env`, que tiene rol de administrador. No hay registro público ni cuentas en MySQL.
+La aplicación guarda las cuentas y comentarios en MySQL. Las contraseñas se guardan como hashes bcrypt. El formulario «Administrar usuarios» solo permite altas a un administrador; las cuentas nuevas tienen rol `usuario`. Los archivos adjuntos se implementarán aparte: el archivo irá al disco y MySQL guardará sus metadatos.
 
-Para crear usuarios manualmente, copia `usuarios.example.json` como `usuarios.json` junto a `server.js` y escribe solo las cuentas que quieras autorizar:
+### Inicializar MySQL en una instalación nueva
 
-```json
-[
-	{
-		"usuario": "nombre_que_autorizas",
-		"contrasena": "clave_privada",
-		"rol": "admin"
-	},
-	{
-		"usuario": "otra_persona",
-		"contrasena": "otra_clave_privada",
-		"rol": "usuario"
-	}
-]
+Configura en `.env` `DB_NAME=frikicoments`, `DB_USER`, `DB_PASSWORD`, `LOGIN_USERNAME` y `LOGIN_PASSWORD`. La cuenta `LOGIN_USERNAME` se crea como administrador inicial. Desde la carpeta del proyecto ejecuta:
+
+```bash
+npm install
+npm run db:init
 ```
 
-Solo las cuentas con rol `admin` pueden abrir «Administrar usuarios» y crear cuentas desde la web. Las cuentas nuevas reciben automáticamente el rol `usuario`. La cuenta configurada en `.env` siempre será administradora. Guarda `usuarios.json` también en la Raspberry Pi: `.gitignore` evita que se suba a GitHub. Los cambios manuales en la lista se leen en el siguiente intento de inicio de sesión. En esta versión las claves están en texto plano dentro de un archivo privado, adecuado solo para una prueba controlada. Para un sitio público, deben guardarse como hashes con bcrypt.
+El script crea las tablas `usuarios` y `comentarios`, guarda el admin con bcrypt e importa las cuentas existentes de `usuarios.json` como hashes, si el archivo privado está presente. Las cuentas duplicadas no se sobrescriben. Conserva el JSON privado hasta comprobar que las cuentas importadas pueden iniciar sesión; nunca lo subas a GitHub.
+
+### Prueba de extremo a extremo
+
+1. Inicia sesión con el administrador configurado en `.env`.
+2. Abre «Administrar usuarios» y crea una cuenta de prueba con una contraseña de al menos 8 caracteres.
+3. Cierra sesión, inicia con la cuenta de prueba y publica un comentario de prueba.
+4. Recarga la página: el comentario debe seguir apareciendo porque quedó guardado en MySQL.
+
+Para comprobar la conexión sin mostrar credenciales, usa `curl http://localhost:3000/api/health` en la Raspberry. En la aplicación desplegada, reinicia el proceso de Node con PM2 después de actualizar el código.
 
 ## Ejecución en local
 
@@ -95,9 +96,8 @@ La finalidad del proyecto es crear una pequeña comunidad de videojuegos con el 
 
 Como próximas mejoras se plantean:
 
-- Registro y autenticación persistente de usuarios en MySQL.
+- Guardado, borrado y límites de tamaño para archivos adjuntos.
 - Perfiles de usuario.
 - Creación de hilos y respuestas.
-- Publicación de reseñas.
-- Guardado de comentarios en MySQL.
+- Administración y moderación de comentarios.
 - Moderación básica del contenido.

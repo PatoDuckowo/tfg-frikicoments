@@ -10,7 +10,7 @@
   <main class="container">
     <header>
       <h1>Administrar usuarios</h1>
-      <p>Esta herramienta está reservada al administrador.</p>
+      <p>Solo el administrador puede crear cuentas. Las contraseñas se guardan como hash en MySQL.</p>
     </header>
 
     <section class="card">
@@ -59,7 +59,7 @@
         if (!respuesta.ok) throw new Error(datos.error || 'No se pudo crear el usuario.');
 
         formulario.reset();
-        mensaje.textContent = 'Usuario creado. Solo podrá acceder quien tenga estas credenciales.';
+        mensaje.textContent = 'Usuario creado en MySQL. La contraseña se guardó como hash bcrypt.';
       } catch (error) {
         mensaje.textContent = error.message;
         mensaje.classList.add('error');

@@ -11,7 +11,7 @@
     <div class="container">
         <header>
             <h1>Frikicoments</h1>
-            <p>Escapar de la IA, puede que los estilos sean genericos actualmente pero tiempo al tiempo.</p>
+            <p>Volvieron los blogs antiguos. Comparte lo que quieras con respeto</p>
             <nav class="account-menu" aria-label="Cuenta">
                 <form class="form-box header-login-form" id="login-form">
                     <label for="usuario-login">Nombre de usuario
@@ -73,7 +73,7 @@
         <section class="main-grid">
             <div>
                 <h3 class="panel-title">Últimos comentarios</h3>
-                <div class="comment-list">
+                <div class="comment-list" id="comment-list">
                     <article class="comment">
                         <div class="comment-header">
                             <div class="user">
@@ -101,16 +101,11 @@
             <aside class="sidebar">
                 <div class="card">
                     <h3 class="panel-title">Deja tu opinión</h3>
-                    <form class="form-box">
-                        <label>
-                            Nombre
-                            <input type="text" placeholder="Tu nombre">
-                        </label>
-
-                        <label>
+                    <form class="form-box" id="form-comentario">
+                        <label for="juego-comentario">
                             Juego
-                            <select>
-                                <option>Selecciona un juego</option>
+                            <select id="juego-comentario" name="juego" required>
+                                <option value="">Selecciona un juego</option>
                                 <option>Cyberpunk 2077</option>
                                 <option>The Legend of Zelda</option>
                                 <option>God of War</option>
@@ -118,12 +113,13 @@
                             </select>
                         </label>
 
-                        <label>
+                        <label for="texto-comentario">
                             Comentario
-                            <textarea placeholder="Escribe tu reseña..."></textarea>
+                            <textarea id="texto-comentario" name="contenido" maxlength="5000" placeholder="Escribe tu reseña..." required></textarea>
                         </label>
 
-                        <button class="btn primary" type="button">Publicar comentario</button>
+                        <button class="btn primary" type="submit">Publicar comentario</button>
+                        <p class="auth-message" id="comentario-mensaje" role="status" aria-live="polite"></p>
                     </form>
                 </div>
 
@@ -173,6 +169,53 @@
         const accionesCuenta = document.querySelector('#account-actions');
         const nombreCuenta = document.querySelector('#account-name');
         const enlaceAdmin = document.querySelector('#admin-link');
+        const listaComentarios = document.querySelector('#comment-list');
+        const formularioComentario = document.querySelector('#form-comentario');
+        const mensajeComentario = document.querySelector('#comentario-mensaje');
+
+        function crearElemento(tag, clase, texto) {
+            const elemento = document.createElement(tag);
+            if (clase) elemento.className = clase;
+            elemento.textContent = texto;
+            return elemento;
+        }
+
+        async function cargarComentarios() {
+            try {
+                const respuesta = await fetch('/api/comentarios', { credentials: 'same-origin' });
+                if (!respuesta.ok) throw new Error('No se pudieron cargar los comentarios.');
+                const comentarios = await respuesta.json();
+                listaComentarios.replaceChildren();
+
+                if (comentarios.length === 0) {
+                    listaComentarios.append(crearElemento('p', 'status', 'Todavía no hay comentarios. ¡Publica el primero!'));
+                    return;
+                }
+
+                comentarios.forEach(comentario => {
+                    const articulo = document.createElement('article');
+                    articulo.className = 'comment';
+                    const cabecera = document.createElement('div');
+                    cabecera.className = 'comment-header';
+                    const usuario = document.createElement('div');
+                    usuario.className = 'user';
+                    usuario.append(
+                        crearElemento('div', 'avatar', comentario.usuario.slice(0, 1).toUpperCase()),
+                        crearElemento('div', 'username', comentario.usuario)
+                    );
+                    cabecera.append(usuario, crearElemento('span', 'game-tag', comentario.juego));
+                    articulo.append(cabecera, crearElemento('p', '', comentario.contenido));
+
+                    if (comentario.creado_en) {
+                        const fecha = new Date(comentario.creado_en);
+                        articulo.append(crearElemento('small', 'comment-date', fecha.toLocaleString('es-ES')));
+                    }
+                    listaComentarios.append(articulo);
+                });
+            } catch (error) {
+                listaComentarios.replaceChildren(crearElemento('p', 'status', error.message));
+            }
+        }
 
         async function comprobarSesion() {
             try {
@@ -186,6 +229,7 @@
                 accionesCuenta.hidden = false;
                 contenidoPrincipal.hidden = false;
                 comprobarConexion();
+                cargarComentarios();
                 return true;
             } catch (error) {
                 return false;
@@ -218,6 +262,33 @@
             } catch (error) {
                 mensajeLogin.textContent = error.message;
                 mensajeLogin.classList.add('error');
+            }
+        });
+
+        formularioComentario.addEventListener('submit', async (evento) => {
+            evento.preventDefault();
+            mensajeComentario.textContent = 'Guardando en MySQL...';
+            mensajeComentario.classList.remove('error');
+
+            try {
+                const respuesta = await fetch('/api/comentarios', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        juego: formularioComentario.juego.value,
+                        contenido: formularioComentario.contenido.value
+                    })
+                });
+                const datos = await respuesta.json();
+                if (!respuesta.ok) throw new Error(datos.error || 'No se pudo guardar el comentario.');
+
+                formularioComentario.reset();
+                mensajeComentario.textContent = 'Comentario guardado en MySQL.';
+                await cargarComentarios();
+            } catch (error) {
+                mensajeComentario.textContent = error.message;
+                mensajeComentario.classList.add('error');
             }
         });
 

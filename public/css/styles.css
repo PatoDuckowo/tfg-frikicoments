@@ -301,6 +301,13 @@ header p {
   color: #f8f8f2;
 }
 
+.comment-date {
+  display: block;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.6rem;
+}
+
 /* Formularios Retro */
 .form-box {
   display: grid;
