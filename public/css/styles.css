@@ -82,6 +82,44 @@ header p {
   font-size: 0.75rem;
 }
 
+.account-menu {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.header-login-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  align-items: end;
+  width: 100%;
+}
+
+.header-login-form .auth-message {
+  grid-column: 1 / -1;
+}
+
+.account-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+#contenido-principal[hidden],
+#account-actions[hidden],
+#login-form[hidden] {
+  display: none;
+}
+
+.account-name {
+  color: #8be9fd;
+  font-size: 0.7rem;
+}
+
+.account-menu .btn {
+  font-size: 0.6rem;
+}
+
 /* Grid & Hero */
 .hero {
   display: grid;
@@ -283,6 +321,39 @@ header p {
   color: #ff8a80;
 }
 
+.error-container {
+  width: min(760px, 92%);
+  padding-top: max(30px, 10vh);
+  text-align: center;
+}
+
+.not-found-card {
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+}
+
+.error-code {
+  margin: 0;
+  color: #f7d51d;
+  font-size: clamp(4rem, 18vw, 8rem);
+  line-height: 1.1;
+  text-shadow: 6px 6px 0 #000000;
+}
+
+.error-description {
+  max-width: 560px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.8;
+}
+
+.not-found-card a.btn {
+  color: #ffffff;
+  text-decoration: none;
+}
+
 label {
   display: grid;
   gap: 8px;
@@ -362,6 +433,14 @@ textarea {
   .hero,
   .main-grid {
     grid-template-columns: 1fr;
+  }
+
+  .header-login-form {
+    grid-template-columns: 1fr;
+  }
+
+  .header-login-form .auth-message {
+    grid-column: auto;
   }
 
   .container {

@@ -25,7 +25,10 @@ function requerirInicioSesion(req, res, next) {
 
   if (!sesion || sesion.expiraEn < Date.now()) {
     if (token) sesiones.delete(token);
-    return res.redirect('/usuarios/iniciar-sesion.html');
+    if (req.path.startsWith('/api/')) {
+      return res.status(401).json({ error: 'Debes iniciar sesión.' });
+    }
+    return res.redirect('/');
   }
 
   req.usuario = sesion.usuario;
@@ -74,7 +77,12 @@ app.get('/', (req, res) => {
 });
 
 // 2. Ruta de resultados
-app.get('/resultados', (req, res) => {
+app.get('/resultados', requerirInicioSesion, (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.sendFile(path.join(__dirname, 'public', 'resultados.html'));
+});
+
+app.get('/resultados.html', requerirInicioSesion, (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.sendFile(path.join(__dirname, 'public', 'resultados.html'));
 });
@@ -136,7 +144,7 @@ async function getTwitchToken() {
 }
 
 // 5. Endpoint de búsqueda en IGDB con paginación
-app.get('/api/juegos/buscar', async (req, res) => {
+app.get('/api/juegos/buscar', requerirInicioSesion, async (req, res) => {
   const query = req.query.q;
   const page = parseInt(req.query.page) || 1;
   const limit = 12;
@@ -190,6 +198,15 @@ app.get('/api/juegos/buscar', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Error al consultar IGDB', mensaje: error.message });
   }
+});
+
+// Página para rutas web inexistentes; las rutas API responden con JSON.
+app.use((req, res) => {
+  if (req.path === '/api' || req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'Endpoint no encontrado' });
+  }
+
+  res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
 });
 
 app.listen(PORT, () => {

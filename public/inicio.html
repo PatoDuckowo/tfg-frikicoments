@@ -5,22 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Frikicoments</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css?v=20260831-1">
+    <link rel="stylesheet" href="css/styles.css?v=20260927-1">
 </head>
 <body>
-    <!-- SECCIÓN BUSCADOR -->
-<section class="card" style="margin-top: 24px;">
-    <h3 class="panel-title">Buscar Videojuegos</h3>
-    <form action="/resultados" method="GET" class="form-box" style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <input type="text" name="q" placeholder="Buscar juego (ej: Zelda, Mario, Cyberpunk)..." style="flex: 1; min-width: 220px;" required>
-        <button class="btn primary" type="submit">Buscar</button>
-    </form>
-</section>
     <div class="container">
         <header>
             <h1>Frikicoments</h1>
-            <p>Escapar de la IA, puede que los estilos sean genericos actualmente pero tiempo al tiempo. </p>
+            <p>Escapar de la IA, puede que los estilos sean genericos actualmente pero tiempo al tiempo.</p>
+            <nav class="account-menu" aria-label="Cuenta">
+                <form class="form-box header-login-form" id="login-form">
+                    <label for="usuario-login">Nombre de usuario
+                        <input id="usuario-login" name="usuario" type="text" autocomplete="username" required>
+                    </label>
+                    <label for="contrasena-login">Contraseña
+                        <input id="contrasena-login" name="contrasena" type="password" autocomplete="current-password" required>
+                    </label>
+                    <button class="btn primary" type="submit">Iniciar sesión</button>
+                    <p class="auth-message" id="login-mensaje" role="status" aria-live="polite"></p>
+                </form>
+                <div class="account-actions" id="account-actions" hidden>
+                    <span class="account-name" id="account-name"></span>
+                    <button class="btn secondary" id="logout-button" type="button">Cerrar sesión</button>
+                </div>
+            </nav>
         </header>
+
+        <div id="contenido-principal" hidden>
+        <section class="card" style="margin-top: 24px;">
+            <h3 class="panel-title">Buscar Videojuegos</h3>
+            <form action="/resultados" method="GET" class="form-box" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <input type="text" name="q" placeholder="Buscar juego (ej: Zelda, Mario, Cyberpunk)..." style="flex: 1; min-width: 220px;" required>
+                <button class="btn primary" type="submit">Buscar</button>
+            </form>
+        </section>
 
         <section class="hero">
             <div class="card featured">
@@ -125,6 +142,7 @@
                 </div>
             </aside>
         </section>
+        </div>
     </div>
 
     <script>
@@ -148,7 +166,72 @@
             }
         }
 
-        comprobarConexion();
+        const formularioLogin = document.querySelector('#login-form');
+        const mensajeLogin = document.querySelector('#login-mensaje');
+        const contenidoPrincipal = document.querySelector('#contenido-principal');
+        const accionesCuenta = document.querySelector('#account-actions');
+        const nombreCuenta = document.querySelector('#account-name');
+
+        async function comprobarSesion() {
+            try {
+                const respuesta = await fetch('/api/usuarios/me', { credentials: 'same-origin' });
+                if (!respuesta.ok) return false;
+
+                const datos = await respuesta.json();
+                nombreCuenta.textContent = `Sesión: ${datos.usuario}`;
+                formularioLogin.hidden = true;
+                accionesCuenta.hidden = false;
+                contenidoPrincipal.hidden = false;
+                comprobarConexion();
+                return true;
+            } catch (error) {
+                return false;
+            }
+        }
+
+        formularioLogin.addEventListener('submit', async (evento) => {
+            evento.preventDefault();
+            mensajeLogin.textContent = 'Comprobando datos...';
+            mensajeLogin.classList.remove('error');
+
+            try {
+                const respuesta = await fetch('/api/usuarios/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        usuario: formularioLogin.usuario.value,
+                        contrasena: formularioLogin.contrasena.value
+                    })
+                });
+                const datos = await respuesta.json().catch(() => ({}));
+                if (!respuesta.ok) {
+                    throw new Error(datos.error || 'No se pudo iniciar sesión. Comprueba que el servidor esté actualizado.');
+                }
+
+                formularioLogin.reset();
+                mensajeLogin.textContent = '';
+                if (!await comprobarSesion()) throw new Error('No se pudo recuperar la sesión iniciada.');
+            } catch (error) {
+                mensajeLogin.textContent = error.message;
+                mensajeLogin.classList.add('error');
+            }
+        });
+
+        document.querySelector('#logout-button').addEventListener('click', async () => {
+            try {
+                await fetch('/api/usuarios/logout', {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+                window.location.reload();
+            } catch (error) {
+                mensajeLogin.textContent = 'No se pudo cerrar la sesión. Inténtalo de nuevo.';
+                mensajeLogin.classList.add('error');
+            }
+        });
+
+        comprobarSesion();
     </script>
 </body>
 </html>
