@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iniciar sesión - Frikicoments</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+  <main class="container auth-container">
+    <header>
+      <h1>Iniciar sesión</h1>
+      <p>Accede a tu cuenta de Frikicoments.</p>
+    </header>
+
+    <section class="card">
+      <form class="form-box" id="login-form">
+        <label for="usuario">Nombre de usuario</label>
+        <input id="usuario" name="usuario" type="text" placeholder="Tu nombre de usuario" autocomplete="username" required>
+
+        <label for="contrasena">Contraseña</label>
+        <input id="contrasena" name="contrasena" type="password" placeholder="Escribe tu contraseña" autocomplete="current-password" required>
+
+        <button class="btn primary" type="submit">Entrar</button>
+        <p class="auth-message" id="mensaje" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <p><a class="btn-volver" href="../inicio.html">Volver al inicio</a></p>
+  </main>
+  <script>
+    const formulario = document.querySelector('#login-form');
+    const mensaje = document.querySelector('#mensaje');
+
+    formulario.addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      mensaje.textContent = 'Comprobando datos...';
+      mensaje.classList.remove('error');
+
+      try {
+        const respuesta = await fetch('/api/usuarios/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            usuario: formulario.usuario.value,
+            contrasena: formulario.contrasena.value
+          })
+        });
+        const datos = await respuesta.json();
+
+        if (!respuesta.ok) throw new Error(datos.error || 'No se pudo iniciar sesión.');
+        window.location.href = '/usuarios/mi-cuenta.html';
+      } catch (error) {
+        mensaje.textContent = error.message;
+        mensaje.classList.add('error');
+      }
+    });
+  </script>
+</body>
+</html>

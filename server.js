@@ -1,12 +1,68 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
+const crypto = require('crypto');
 const { pool } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
+
+// Sesiones sencillas en memoria: desaparecen al reiniciar el servidor.
+const sesiones = new Map();
+const duracionSesionMs = 8 * 60 * 60 * 1000;
+
+function obtenerTokenSesion(req) {
+  const cookies = req.headers.cookie || '';
+  const cookieSesion = cookies.split('; ').find(cookie => cookie.startsWith('frikicoments_session='));
+  return cookieSesion ? cookieSesion.split('=')[1] : null;
+}
+
+function requerirInicioSesion(req, res, next) {
+  const token = obtenerTokenSesion(req);
+  const sesion = token ? sesiones.get(token) : null;
+
+  if (!sesion || sesion.expiraEn < Date.now()) {
+    if (token) sesiones.delete(token);
+    return res.redirect('/usuarios/iniciar-sesion.html');
+  }
+
+  req.usuario = sesion.usuario;
+  next();
+}
+
+app.post('/api/usuarios/login', (req, res) => {
+  const usuario = String(req.body.usuario || '').trim();
+  const contrasena = String(req.body.contrasena || '');
+  const usuarioConfigurado = process.env.LOGIN_USERNAME;
+  const contrasenaConfigurada = process.env.LOGIN_PASSWORD;
+
+  if (!usuarioConfigurado || !contrasenaConfigurada) {
+    return res.status(503).json({ error: 'Falta configurar LOGIN_USERNAME y LOGIN_PASSWORD en .env.' });
+  }
+
+  if (usuario !== usuarioConfigurado || contrasena !== contrasenaConfigurada) {
+    return res.status(401).json({ error: 'Usuario o contraseña incorrectos.' });
+  }
+
+  const token = crypto.randomBytes(32).toString('hex');
+  sesiones.set(token, { usuario, expiraEn: Date.now() + duracionSesionMs });
+  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+  res.setHeader('Set-Cookie', `frikicoments_session=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=28800${secure}`);
+  res.json({ ok: true });
+});
+
+app.get('/api/usuarios/me', requerirInicioSesion, (req, res) => {
+  res.json({ usuario: req.usuario });
+});
+
+app.post('/api/usuarios/logout', (req, res) => {
+  const token = obtenerTokenSesion(req);
+  if (token) sesiones.delete(token);
+  res.setHeader('Set-Cookie', 'frikicoments_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0');
+  res.redirect(303, '/usuarios/iniciar-sesion.html');
+});
 
 // 1. Ruta principal
 app.get('/', (req, res) => {
@@ -19,11 +75,23 @@ app.get('/', (req, res) => {
 
 // 2. Ruta de resultados
 app.get('/resultados', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.sendFile(path.join(__dirname, 'public', 'resultados.html'));
 });
 
+// La página de cuenta no se sirve si no hay una sesión válida.
+app.get('/usuarios/mi-cuenta.html', requerirInicioSesion, (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.sendFile(path.join(__dirname, 'public', 'usuarios', 'mi-cuenta.html'));
+});
+
 // 3. Servir archivos estáticos
-app.use(express.static(path.join(__dirname, 'public'), { index: false }));
+app.use(express.static(path.join(__dirname, 'public'), {
+  index: false,
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  }
+}));
 
 // 4. Comprobación MySQL
 app.get('/api/health', async (req, res) => {
@@ -67,20 +135,26 @@ async function getTwitchToken() {
   return igdbToken;
 }
 
-// 5. Endpoint de búsqueda en IGDB
+// 5. Endpoint de búsqueda en IGDB con paginación
 app.get('/api/juegos/buscar', async (req, res) => {
   const query = req.query.q;
-  if (!query) return res.status(400).json({ error: 'Falta término de búsqueda' });
+  const page = parseInt(req.query.page) || 1;
+  const limit = 12;
+  const offset = (page - 1) * limit;
+
+  if (!query) {
+    return res.status(400).json({ error: 'Falta término de búsqueda' });
+  }
 
   try {
     const token = await getTwitchToken();
     const clientId = process.env.IGDB_CLIENT_ID.trim();
 
-    // Consulta en formato APICalypse a IGDB
     const igdbQuery = `
       search "${query.replace(/"/g, '')}";
       fields name, first_release_date, rating, cover.image_id, summary;
-      limit 12;
+      limit ${limit};
+      offset ${offset};
     `;
 
     const igdbRes = await fetch('https://api.igdb.com/v4/games', {
@@ -100,10 +174,12 @@ app.get('/api/juegos/buscar', async (req, res) => {
 
     const games = await igdbRes.json();
 
-    // Normalizar formato de salida para el frontend
     const resultados = games.map(game => ({
+      id: game.id,
       name: game.name,
-      released: game.first_release_date ? new Date(game.first_release_date * 1000).getFullYear().toString() : 'N/D',
+      released: game.first_release_date
+        ? new Date(game.first_release_date * 1000).getFullYear().toString()
+        : 'N/D',
       rating: game.rating ? (game.rating / 20).toFixed(1) : 'N/D',
       background_image: game.cover && game.cover.image_id
         ? `https://images.igdb.com/igdb/image/upload/t_cover_big/${game.cover.image_id}.jpg`

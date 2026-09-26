@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi cuenta - Frikicoments</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+  <main class="container">
+    <header>
+      <h1>Mi cuenta</h1>
+      <p>Datos y opciones del usuario conectado.</p>
+    </header>
+
+    <section class="card">
+      <h2 class="panel-title">Datos personales</h2>
+      <p>Has iniciado sesión como <strong id="nombre-usuario">...</strong>.</p>
+      <p>¡Bienvenido a Frikicoments!</p>
+    </section>
+
+    <section class="card" style="margin-top: 24px;">
+      <h2 class="panel-title">Sesión</h2>
+      <form action="/api/usuarios/logout" method="post">
+        <button class="btn secondary" type="submit">Cerrar sesión</button>
+      </form>
+    </section>
+
+    <p><a class="btn-volver" href="../inicio.html">Volver al inicio</a></p>
+  </main>
+  <script>
+    fetch('/api/usuarios/me')
+      .then(respuesta => respuesta.json())
+      .then(datos => {
+        document.querySelector('#nombre-usuario').textContent = datos.usuario;
+      })
+      .catch(() => {
+        window.location.href = '/usuarios/iniciar-sesion.html';
+      });
+  </script>
+</body>
+</html>
