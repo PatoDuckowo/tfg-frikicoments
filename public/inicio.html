@@ -26,6 +26,8 @@
                 <div class="account-actions" id="account-actions" hidden>
                     <span class="account-name" id="account-name"></span>
                     <a class="btn primary" id="invite-link" href="/usuarios/invitar-usuario.html">Invitar usuario</a>
+                    <a class="btn primary" href="/usuarios/archivos.html">Mis archivos</a>
+                    <a class="btn primary" id="superadmin-link" href="/usuarios/superadmin.html" hidden>Gestionar usuarios</a>
                     <button class="btn secondary" id="logout-button" type="button">Cerrar sesión</button>
                 </div>
             </nav>
@@ -168,6 +170,7 @@
         const contenidoPrincipal = document.querySelector('#contenido-principal');
         const accionesCuenta = document.querySelector('#account-actions');
         const nombreCuenta = document.querySelector('#account-name');
+        const enlaceSuperadmin = document.querySelector('#superadmin-link');
         const listaComentarios = document.querySelector('#comment-list');
         const formularioComentario = document.querySelector('#form-comentario');
         const mensajeComentario = document.querySelector('#comentario-mensaje');
@@ -177,6 +180,13 @@
             if (clase) elemento.className = clase;
             elemento.textContent = texto;
             return elemento;
+        }
+
+        function colorDeUsuario(usuario) {
+            const colores = ['#8be9fd', '#50fa7b', '#f7d51d', '#ff79c6', '#ffb86c', '#bd93f9'];
+            let hash = 0;
+            for (const caracter of usuario) hash = (hash * 31 + caracter.charCodeAt(0)) >>> 0;
+            return colores[hash % colores.length];
         }
 
         async function cargarComentarios() {
@@ -194,6 +204,7 @@
                 comentarios.forEach(comentario => {
                     const articulo = document.createElement('article');
                     articulo.className = 'comment';
+                    articulo.style.setProperty('--usuario-color', colorDeUsuario(comentario.usuario));
                     const cabecera = document.createElement('div');
                     cabecera.className = 'comment-header';
                     const usuario = document.createElement('div');
@@ -223,6 +234,7 @@
 
                 const datos = await respuesta.json();
                 nombreCuenta.textContent = `Sesión: ${datos.usuario}`;
+                enlaceSuperadmin.hidden = !datos.esSuperAdministrador;
                 formularioLogin.hidden = true;
                 accionesCuenta.hidden = false;
                 contenidoPrincipal.hidden = false;

@@ -84,7 +84,9 @@
           const imagenUrl = juego.background_image || 'https://via.placeholder.com/260x330?text=Sin+Caratula';
           
           const card = document.createElement('div');
-          card.className = 'card';
+          card.className = 'card juego-card';
+          card.setAttribute('role', 'link');
+          card.tabIndex = 0;
           card.innerHTML = `
             <div class="card-cover">
               <img src="${imagenUrl}" alt="${juego.name}" loading="lazy">
@@ -97,6 +99,16 @@
               </div>
             </div>
           `;
+          const abrirFicha = () => {
+            window.location.href = `/juego.html?id=${encodeURIComponent(juego.id)}`;
+          };
+          card.addEventListener('click', abrirFicha);
+          card.addEventListener('keydown', evento => {
+            if (evento.key === 'Enter' || evento.key === ' ') {
+              evento.preventDefault();
+              abrirFicha();
+            }
+          });
           grid.appendChild(card);
         });
 

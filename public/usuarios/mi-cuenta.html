@@ -22,18 +22,29 @@
 
     <section class="card" style="margin-top: 24px;">
       <h2 class="panel-title">Sesión</h2>
+      <p><a class="btn primary" href="archivos.html">Mis archivos</a></p>
+      <p><a class="btn primary" href="cambiar-contrasena.html">Cambiar contraseña</a></p>
       <form action="/api/usuarios/logout" method="post">
         <button class="btn secondary" type="submit">Cerrar sesión</button>
       </form>
     </section>
 
-    <p><a class="btn-volver" href="../inicio.html">Volver al inicio</a></p>
+    <section class="card" id="panel-superadmin" style="margin-top: 24px; display: none;">
+      <h2 class="panel-title">Superadministración</h2>
+      <p>Gestiona las contraseñas de las cuentas.</p>
+      <a class="btn primary" href="superadmin.html">Gestionar usuarios</a>
+    </section>
+
+    <p><a class="btn-volver" href="/">Volver a la home</a></p>
   </main>
   <script>
     fetch('/api/usuarios/me')
       .then(respuesta => respuesta.json())
       .then(datos => {
         document.querySelector('#nombre-usuario').textContent = datos.usuario;
+        if (datos.esSuperAdministrador) {
+          document.querySelector('#panel-superadmin').style.display = 'block';
+        }
       })
       .catch(() => {
         window.location.href = '/usuarios/iniciar-sesion.html';

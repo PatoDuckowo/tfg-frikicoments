@@ -1,3 +1,5 @@
 node_modules/
 .env
 usuarios.json
+/memoria-soluciones/solucion-acceso-admin.md
+/storage/

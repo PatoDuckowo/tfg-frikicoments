@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mis archivos - Frikicoments</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css?v=20260927-2">
+</head>
+<body>
+  <main class="container">
+    <header>
+      <h1>Mis archivos</h1>
+      <p>Tu espacio privado de Frikicoments.</p>
+    </header>
+
+    <section class="explorador-toolbar" aria-label="Herramientas de archivos">
+      <a class="btn-volver" href="/">Inicio</a>
+      <a class="btn-volver" href="/usuarios/mi-cuenta.html">Mi cuenta</a>
+      <label class="btn primary selector-archivo" for="archivo-input">Subir archivo</label>
+      <input id="archivo-input" type="file" hidden>
+    </section>
+
+    <section class="explorador-cuota" aria-label="Espacio utilizado">
+      <div class="cuota-cabecera">
+        <strong>Este equipo</strong>
+        <span id="cuota-texto">Calculando espacio...</span>
+      </div>
+      <div class="cuota-barra"><span id="cuota-progreso"></span></div>
+      <p id="mensaje-archivo" class="auth-message" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="explorador-panel">
+      <div class="explorador-panel-cabecera">
+        <h2>Archivos</h2>
+        <span id="contador-archivos">0 elementos</span>
+      </div>
+      <div class="archivos-lista" id="archivos-lista" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <script>
+    const entradaArchivo = document.querySelector('#archivo-input');
+    const lista = document.querySelector('#archivos-lista');
+    const mensaje = document.querySelector('#mensaje-archivo');
+    const cuotaTexto = document.querySelector('#cuota-texto');
+    const cuotaProgreso = document.querySelector('#cuota-progreso');
+    const contador = document.querySelector('#contador-archivos');
+
+    function formatearBytes(bytes) {
+      if (bytes < 1024) return `${bytes} B`;
+      const unidades = ['KB', 'MB', 'GB'];
+      let valor = bytes;
+      let unidad = -1;
+      do {
+        valor /= 1024;
+        unidad += 1;
+      } while (valor >= 1024 && unidad < unidades.length - 1);
+      return `${valor.toFixed(valor >= 10 ? 0 : 1)} ${unidades[unidad]}`;
+    }
+
+    function iconoArchivo(nombre) {
+      const extension = nombre.includes('.') ? nombre.split('.').pop().toUpperCase() : 'FILE';
+      return extension.slice(0, 4);
+    }
+
+    function mostrarArchivos(datos) {
+      const porcentaje = Math.min(100, datos.usadosBytes / datos.cuotaBytes * 100);
+      cuotaTexto.textContent = `${formatearBytes(datos.usadosBytes)} de ${formatearBytes(datos.cuotaBytes)}`;
+      cuotaProgreso.style.width = `${porcentaje}%`;
+      contador.textContent = `${datos.archivos.length} ${datos.archivos.length === 1 ? 'elemento' : 'elementos'}`;
+      lista.replaceChildren();
+
+      if (datos.archivos.length === 0) {
+        const vacio = document.createElement('p');
+        vacio.className = 'explorador-vacio';
+        vacio.textContent = 'Esta carpeta está vacía. Pulsa “Subir archivo” para empezar.';
+        lista.append(vacio);
+        return;
+      }
+
+      datos.archivos.forEach(archivo => {
+        const fila = document.createElement('article');
+        fila.className = 'archivo-fila';
+        const icono = document.createElement('span');
+        icono.className = 'archivo-icono';
+        icono.textContent = iconoArchivo(archivo.nombre_original);
+        const nombre = document.createElement('strong');
+        nombre.textContent = archivo.nombre_original;
+        const tipo = document.createElement('span');
+        tipo.textContent = archivo.mime_type;
+        const tamano = document.createElement('span');
+        tamano.textContent = formatearBytes(Number(archivo.tamano_bytes));
+        const acciones = document.createElement('div');
+        acciones.className = 'archivo-acciones';
+
+        const descargar = document.createElement('a');
+        descargar.className = 'btn secondary';
+        descargar.href = `/api/archivos/${archivo.id}/descargar`;
+        descargar.textContent = 'Descargar';
+        descargar.setAttribute('download', '');
+
+        const borrar = document.createElement('button');
+        borrar.className = 'btn danger';
+        borrar.type = 'button';
+        borrar.textContent = 'Borrar';
+        borrar.addEventListener('click', async () => {
+          if (!window.confirm(`¿Borrar “${archivo.nombre_original}”?`)) return;
+          const respuesta = await fetch(`/api/archivos/${archivo.id}`, { method: 'DELETE' });
+          const resultado = await respuesta.json();
+          if (!respuesta.ok) {
+            mensaje.textContent = resultado.error || 'No se pudo borrar el archivo.';
+            mensaje.classList.add('error');
+            return;
+          }
+          cargarArchivos();
+        });
+
+        acciones.append(descargar, borrar);
+        fila.append(icono, nombre, tipo, tamano, acciones);
+        lista.append(fila);
+      });
+    }
+
+    async function cargarArchivos() {
+      const respuesta = await fetch('/api/archivos');
+      const datos = await respuesta.json();
+      if (!respuesta.ok) throw new Error(datos.error || 'No se pudieron cargar los archivos.');
+      mostrarArchivos(datos);
+    }
+
+    entradaArchivo.addEventListener('change', async () => {
+      const archivo = entradaArchivo.files[0];
+      if (!archivo) return;
+      const datos = new FormData();
+      datos.append('archivo', archivo);
+      mensaje.classList.remove('error');
+      mensaje.textContent = `Subiendo ${archivo.name}...`;
+      entradaArchivo.disabled = true;
+      try {
+        const respuesta = await fetch('/api/archivos', { method: 'POST', body: datos });
+        const resultado = await respuesta.json();
+        if (!respuesta.ok) throw new Error(resultado.error || 'No se pudo subir el archivo.');
+        mensaje.textContent = 'Archivo subido correctamente.';
+        await cargarArchivos();
+      } catch (error) {
+        mensaje.textContent = error.message;
+        mensaje.classList.add('error');
+      } finally {
+        entradaArchivo.value = '';
+        entradaArchivo.disabled = false;
+      }
+    });
+
+    cargarArchivos().catch(error => {
+      mensaje.textContent = error.message;
+      mensaje.classList.add('error');
+    });
+  </script>
+</body>
+</html>
