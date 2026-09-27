@@ -26,23 +26,37 @@
     const lista = document.querySelector('#lista-usuarios');
     const mensaje = document.querySelector('#mensaje');
 
-    function escaparTexto(valor) {
-      return String(valor).replace(/[&<>'"]/g, caracter => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-      }[caracter]));
-    }
-
     function mostrarUsuarios(usuarios) {
-      lista.innerHTML = usuarios.map(usuario => `
-        <article class="card" style="margin-top: 16px;">
-          <p><strong>${escaparTexto(usuario.nombre_usuario)}</strong> (${escaparTexto(usuario.rol)})</p>
-          <form class="form-box" data-id="${usuario.id}">
-            <label for="contrasena-${usuario.id}">Nueva contraseña</label>
-            <input id="contrasena-${usuario.id}" name="contrasena" type="password" minlength="8" autocomplete="new-password" required>
-            <button class="btn primary" type="submit">Restablecer contraseña</button>
-          </form>
-        </article>
-      `).join('');
+      lista.replaceChildren();
+      usuarios.forEach(usuario => {
+        const tarjeta = document.createElement('article');
+        tarjeta.className = 'card';
+        tarjeta.style.marginTop = '16px';
+        const datos = document.createElement('p');
+        const nombre = document.createElement('strong');
+        nombre.textContent = usuario.nombre_usuario;
+        datos.append(nombre, document.createTextNode(` (${usuario.rol})`));
+        const formulario = document.createElement('form');
+        formulario.className = 'form-box';
+        formulario.dataset.id = usuario.id;
+        const etiqueta = document.createElement('label');
+        etiqueta.htmlFor = `contrasena-${usuario.id}`;
+        etiqueta.textContent = 'Nueva contraseña';
+        const entrada = document.createElement('input');
+        entrada.id = `contrasena-${usuario.id}`;
+        entrada.name = 'contrasena';
+        entrada.type = 'password';
+        entrada.minLength = 8;
+        entrada.autocomplete = 'new-password';
+        entrada.required = true;
+        const boton = document.createElement('button');
+        boton.className = 'btn primary';
+        boton.type = 'submit';
+        boton.textContent = 'Restablecer contraseña';
+        formulario.append(etiqueta, entrada, boton);
+        tarjeta.append(datos, formulario);
+        lista.append(tarjeta);
+      });
     }
 
     async function cargarUsuarios() {

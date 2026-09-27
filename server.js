@@ -474,12 +474,17 @@ async function getTwitchToken() {
 
 // 5. Endpoint de búsqueda en IGDB con paginación
 app.get('/api/juegos/buscar', requerirInicioSesion, async (req, res) => {
-  const query = req.query.q;
-  const page = parseInt(req.query.page) || 1;
+  const query = String(req.query.q || '').trim();
+  const terminoBusqueda = query
+    .replace(/[^\p{L}\p{N}\s._:-]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 100);
+  const page = Math.max(1, Math.min(100, Number.parseInt(req.query.page, 10) || 1));
   const limit = 12;
   const offset = (page - 1) * limit;
 
-  if (!query) {
+  if (!terminoBusqueda) {
     return res.status(400).json({ error: 'Falta término de búsqueda' });
   }
 
@@ -488,7 +493,7 @@ app.get('/api/juegos/buscar', requerirInicioSesion, async (req, res) => {
     const clientId = process.env.IGDB_CLIENT_ID.trim();
 
     const igdbQuery = `
-      search "${query.replace(/"/g, '')}";
+      search "${terminoBusqueda}";
       fields name, first_release_date, rating, cover.image_id, summary;
       limit ${limit};
       offset ${offset};

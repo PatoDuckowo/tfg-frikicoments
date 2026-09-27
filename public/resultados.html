@@ -59,7 +59,7 @@
 
     async function cargarResultados() {
       if (!query) {
-        grid.innerHTML = '<p class="status-msg">No se especificó ningún término de búsqueda.</p>';
+        mostrarMensaje('No se especificó ningún término de búsqueda.');
         btnPrev.disabled = true;
         btnNext.disabled = true;
         return;
@@ -70,7 +70,7 @@
         const juegos = await res.json();
 
         if (!Array.isArray(juegos) || juegos.length === 0) {
-          grid.innerHTML = '<p class="status-msg">No se encontraron más resultados.</p>';
+          mostrarMensaje('No se encontraron más resultados.');
           btnNext.disabled = true;
           return;
         }
@@ -79,7 +79,7 @@
           btnNext.disabled = true;
         }
 
-        grid.innerHTML = '';
+        grid.replaceChildren();
         juegos.forEach(juego => {
           const imagenUrl = juego.background_image || 'https://via.placeholder.com/260x330?text=Sin+Caratula';
           
@@ -87,18 +87,30 @@
           card.className = 'card juego-card';
           card.setAttribute('role', 'link');
           card.tabIndex = 0;
-          card.innerHTML = `
-            <div class="card-cover">
-              <img src="${imagenUrl}" alt="${juego.name}" loading="lazy">
-            </div>
-            <div class="card-body">
-              <div class="card-title" title="${juego.name}">${juego.name}</div>
-              <div class="card-meta">
-                <span>${juego.released || 'N/A'}</span>
-                <span class="rating">★ ${juego.rating}</span>
-              </div>
-            </div>
-          `;
+          const portada = document.createElement('div');
+          portada.className = 'card-cover';
+          const imagen = document.createElement('img');
+          imagen.src = imagenUrl;
+          imagen.alt = juego.name || 'Carátula del juego';
+          imagen.loading = 'lazy';
+          portada.append(imagen);
+
+          const cuerpo = document.createElement('div');
+          cuerpo.className = 'card-body';
+          const titulo = document.createElement('div');
+          titulo.className = 'card-title';
+          titulo.title = juego.name || '';
+          titulo.textContent = juego.name || 'Juego sin título';
+          const metadatos = document.createElement('div');
+          metadatos.className = 'card-meta';
+          const lanzamiento = document.createElement('span');
+          lanzamiento.textContent = juego.released || 'N/A';
+          const valoracion = document.createElement('span');
+          valoracion.className = 'rating';
+          valoracion.textContent = `★ ${juego.rating || 'N/D'}`;
+          metadatos.append(lanzamiento, valoracion);
+          cuerpo.append(titulo, metadatos);
+          card.append(portada, cuerpo);
           const abrirFicha = () => {
             window.location.href = `/juego.html?id=${encodeURIComponent(juego.id)}`;
           };
@@ -113,8 +125,16 @@
         });
 
       } catch (err) {
-        grid.innerHTML = `<p class="status-msg" style="color: var(--accent-red, #ef4444);">Error al cargar resultados: ${err.message}</p>`;
+        mostrarMensaje(`Error al cargar resultados: ${err.message}`, true);
       }
+    }
+
+    function mostrarMensaje(texto, esError = false) {
+      const mensaje = document.createElement('p');
+      mensaje.className = 'status-msg';
+      if (esError) mensaje.style.color = 'var(--accent-red, #ef4444)';
+      mensaje.textContent = texto;
+      grid.replaceChildren(mensaje);
     }
 
     cargarResultados();
