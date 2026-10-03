@@ -1,7 +1,7 @@
 /* Grid de Videojuegos */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, 260px);
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 260px));
   justify-content: center;
   gap: 24px;
 }
@@ -163,6 +163,22 @@
 }
 
 @media (max-width: 680px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    padding: 0 4%;
+  }
+
+  .grid > .card {
+    width: 100%;
+  }
+
+  .paginacion {
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 0 4%;
+  }
+
   .detalle-cabecera {
     grid-template-columns: 1fr;
   }
@@ -171,4 +187,16 @@
   .detalle-portada img {
     min-height: 300px;
   }
+}
+
+.biblioteca {
+  width: min(1080px, 92%);
+  margin: 30px auto 60px;
+}
+
+.biblioteca-tabs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
 }

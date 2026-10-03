@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi biblioteca - Frikicoments</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css?v=20260927-2">
+  <link rel="stylesheet" href="/css/catalogo.css?v=20260927-2">
+</head>
+<body>
+  <header>
+    <h1>Mi biblioteca</h1>
+    <a href="/" class="btn-volver">Volver a la home</a>
+  </header>
+  <main class="biblioteca">
+    <nav class="biblioteca-tabs" aria-label="Filtros de biblioteca">
+      <button class="btn primary" data-filtro="todos">Todos</button>
+      <button class="btn secondary" data-filtro="guardado">Guardados</button>
+      <button class="btn secondary" data-filtro="me_gusta">Me gusta</button>
+    </nav>
+    <p id="mensaje" class="auth-message" role="status" aria-live="polite"></p>
+    <div id="lista" class="grid"></div>
+  </main>
+  <script>
+    const lista = document.querySelector('#lista');
+    const mensaje = document.querySelector('#mensaje');
+    let biblioteca = [];
+    let filtro = 'todos';
+
+    function pintar() {
+      lista.replaceChildren();
+      const elementos = biblioteca.filter(item => filtro === 'todos' || Boolean(item[filtro]));
+      if (!elementos.length) {
+        const vacio = document.createElement('p');
+        vacio.className = 'status-msg';
+        vacio.textContent = 'No hay juegos en esta sección.';
+        lista.append(vacio);
+        return;
+      }
+      elementos.forEach(item => {
+        const juego = item.juego;
+        const tarjeta = document.createElement('article');
+        tarjeta.className = 'card juego-card';
+        tarjeta.addEventListener('click', () => { window.location.href = `/juego.html?id=${juego.id}`; });
+        const portada = document.createElement('div');
+        portada.className = 'card-cover';
+        const imagen = document.createElement('img');
+        imagen.src = juego.background_image || 'https://via.placeholder.com/260x330?text=Sin+Caratula';
+        imagen.alt = juego.name;
+        portada.append(imagen);
+        const cuerpo = document.createElement('div');
+        cuerpo.className = 'card-body';
+        const nombre = document.createElement('div');
+        nombre.className = 'card-title';
+        nombre.textContent = juego.name;
+        const meta = document.createElement('div');
+        meta.className = 'card-meta';
+        meta.textContent = item.estado ? `Estado: ${item.estado}` : (item.me_gusta ? 'Me gusta' : 'Guardado');
+        cuerpo.append(nombre, meta);
+        tarjeta.append(portada, cuerpo);
+        lista.append(tarjeta);
+      });
+    }
+
+    document.querySelectorAll('[data-filtro]').forEach(boton => {
+      boton.addEventListener('click', () => {
+        filtro = boton.dataset.filtro;
+        pintar();
+      });
+    });
+
+    fetch('/api/mi-biblioteca')
+      .then(async respuesta => {
+        const datos = await respuesta.json();
+        if (!respuesta.ok) throw new Error(datos.error || 'No se pudo cargar la biblioteca.');
+        biblioteca = datos;
+        pintar();
+      })
+      .catch(error => {
+        mensaje.textContent = error.message;
+        mensaje.classList.add('error');
+      });
+  </script>
+</body>
+</html>

@@ -103,3 +103,4 @@ Como próximas mejoras se plantean:
 - Creación de hilos y respuestas.
 - Administración y moderación de comentarios.
 - Moderación básica del contenido.
+- Convertir la aplicación en una PWA instalable, con manifest, iconos y service worker.

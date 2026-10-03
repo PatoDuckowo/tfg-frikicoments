@@ -12,6 +12,7 @@
   <header>
     <h1 id="titulo-juego">Cargando juego...</h1>
     <a href="javascript:history.back()" class="btn-volver">Volver a resultados</a>
+    <a href="/usuarios/biblioteca.html" class="btn-volver">Mi biblioteca</a>
   </header>
 
   <main class="detalle-juego">
@@ -36,6 +37,11 @@
         <option value="abandonado">Lo he abandonado</option>
       </select>
       <p id="mensaje-estado" class="auth-message" role="status" aria-live="polite"></p>
+      <div class="juego-acciones">
+        <button class="btn secondary" id="guardar-juego" type="button">Guardar juego</button>
+        <button class="btn primary" id="me-gusta-juego" type="button">Me gusta</button>
+      </div>
+      <p id="mensaje-marcadores" class="auth-message" role="status" aria-live="polite"></p>
     </section>
 
     <section class="card detalle-comentarios">
@@ -59,6 +65,9 @@
     const mensajeJuego = document.querySelector('#mensaje-juego');
     const estado = document.querySelector('#estado-juego');
     const mensajeEstado = document.querySelector('#mensaje-estado');
+    const botonGuardar = document.querySelector('#guardar-juego');
+    const botonMeGusta = document.querySelector('#me-gusta-juego');
+    const mensajeMarcadores = document.querySelector('#mensaje-marcadores');
     const formulario = document.querySelector('#form-comentario');
     const contenido = document.querySelector('#contenido-comentario');
     const mensajeComentario = document.querySelector('#mensaje-comentario');
@@ -103,14 +112,16 @@
       if (!juegoId || !/^\d+$/.test(juegoId)) {
         throw new Error('No se ha indicado un juego válido.');
       }
-      const [respuestaJuego, respuestaEstado, respuestaComentarios] = await Promise.all([
+      const [respuestaJuego, respuestaEstado, respuestaMarcadores, respuestaComentarios] = await Promise.all([
         fetch(`/api/juegos/${juegoId}`),
         fetch(`/api/juegos/${juegoId}/estado`),
+        fetch(`/api/juegos/${juegoId}/marcadores`),
         fetch(`/api/juegos/${juegoId}/comentarios`)
       ]);
       const juego = await respuestaJuego.json();
       if (!respuestaJuego.ok) throw new Error(juego.error || 'No se pudo cargar el juego.');
       const datosEstado = await respuestaEstado.json();
+      const marcadores = await respuestaMarcadores.json();
       const comentarios = await respuestaComentarios.json();
 
       titulo.textContent = juego.name;
@@ -126,8 +137,40 @@
         portada.textContent = 'Sin carátula';
       }
       estado.value = datosEstado.estado || '';
+      actualizarMarcadores(marcadores);
       mostrarComentarios(comentarios);
     }
+
+    function actualizarMarcadores(marcadores) {
+      botonGuardar.textContent = marcadores.guardado ? 'Quitar de guardados' : 'Guardar juego';
+      botonMeGusta.textContent = marcadores.meGusta ? 'Quitar me gusta' : 'Me gusta';
+    }
+
+    async function cambiarMarcador(url, campo, activo) {
+      try {
+        const respuesta = await fetch(url, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [campo]: !activo })
+        });
+        const datos = await respuesta.json();
+        if (!respuesta.ok) throw new Error(datos.error || 'No se pudo guardar el cambio.');
+        mensajeMarcadores.textContent = 'Guardado.';
+        const marcadores = await (await fetch(`/api/juegos/${juegoId}/marcadores`)).json();
+        actualizarMarcadores(marcadores);
+      } catch (error) {
+        mostrarError(mensajeMarcadores, error.message);
+      }
+    }
+
+    botonGuardar.addEventListener('click', async () => {
+      const marcadores = await (await fetch(`/api/juegos/${juegoId}/marcadores`)).json();
+      cambiarMarcador(`/api/juegos/${juegoId}/guardado`, 'guardado', marcadores.guardado);
+    });
+    botonMeGusta.addEventListener('click', async () => {
+      const marcadores = await (await fetch(`/api/juegos/${juegoId}/marcadores`)).json();
+      cambiarMarcador(`/api/juegos/${juegoId}/me-gusta`, 'meGusta', marcadores.meGusta);
+    });
 
     estado.addEventListener('change', async () => {
       mensajeEstado.classList.remove('error');

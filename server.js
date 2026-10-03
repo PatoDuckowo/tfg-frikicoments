@@ -6,15 +6,19 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const { pool } = require('./db');
-
 const app = express();
+app.disable('x-powered-by');
+app.set('trust proxy', 1);// Para obtener la IP real del cliente detrás de un proxy
 const PORT = process.env.PORT || 3000;
 const superAdministrador = (process.env.LOGIN_USERNAME || '').trim();
-const cuotaArchivosBytes = 500 * 1024 * 1024;
+const cuotaArchivosPorDefectoBytes = 500 * 1024 * 1024;
+const cuotaArchivosMaximaBytes = 10 * 1024 * 1024 * 1024;
 const directorioArchivos = path.join(__dirname, 'storage', 'usuarios');
 const maximoArchivosPorUsuario = 1000;
 const limitesLogin = new Map();
 const limitesSubida = new Map();
+const fallosLogin = new Map();
+const bloqueosLogin = new Map();
 
 fs.mkdirSync(directorioArchivos, { recursive: true });
 
@@ -25,7 +29,7 @@ const subidaArchivo = multer({
       callback(null, `${Date.now()}-${crypto.randomBytes(16).toString('hex')}`);
     }
   }),
-  limits: { fileSize: cuotaArchivosBytes }
+  limits: { fileSize: cuotaArchivosMaximaBytes }
 });
 
 app.use(express.json());
@@ -52,6 +56,26 @@ function puedeContinuar(limites, clave, maximo, ventanaMs) {
   if (actual.cantidad >= maximo) return false;
   actual.cantidad += 1;
   return true;
+}
+
+function obtenerBloqueoLogin(clave) {
+  const bloqueadoHasta = bloqueosLogin.get(clave) || 0;
+  if (bloqueadoHasta <= Date.now()) {
+    bloqueosLogin.delete(clave);
+    return 0;
+  }
+  return bloqueadoHasta;
+}
+
+function registrarFalloLogin(clave) {
+  const fallos = (fallosLogin.get(clave) || 0) + 1;
+  fallosLogin.set(clave, fallos);
+
+  if (fallos >= 10) {
+    bloqueosLogin.set(clave, Date.now() + 5 * 60 * 1000);
+  } else if (fallos >= 5) {
+    bloqueosLogin.set(clave, Date.now() + 30 * 1000);
+  }
 }
 
 async function requerirInicioSesion(req, res, next) {
@@ -94,6 +118,13 @@ function requerirSuperAdministrador(req, res, next) {
   next();
 }
 
+function requerirAdministrador(req, res, next) {
+  if (req.rol !== 'admin') {
+    return res.status(403).json({ error: 'Solo los administradores pueden gestionar cuotas.' });
+  }
+  next();
+}
+
 app.post('/api/usuarios/login', async (req, res) => {
   const ip = req.ip || req.socket.remoteAddress || 'desconocida';
   if (!puedeContinuar(limitesLogin, ip, 10, 15 * 60 * 1000)) {
@@ -101,18 +132,34 @@ app.post('/api/usuarios/login', async (req, res) => {
   }
   const usuario = String(req.body.usuario || '').trim();
   const contrasena = String(req.body.contrasena || '');
+  const claveLogin = `${ip}|${usuario.toLowerCase()}`;
+  const bloqueadoHasta = obtenerBloqueoLogin(claveLogin);
+
+  if (bloqueadoHasta) {
+    const segundos = Math.ceil((bloqueadoHasta - Date.now()) / 1000);
+    res.setHeader('Retry-After', segundos);
+    return res.status(429).json({ error: `Demasiados intentos. Espera ${segundos} segundos.` });
+  }
 
   try {
     const [filas] = await pool.execute(
       'SELECT id, nombre_usuario, password_hash, rol FROM usuarios WHERE nombre_usuario = ?',
       [usuario]
     );
+
     const cuenta = filas[0];
     const contrasenaValida = cuenta && await bcrypt.compare(contrasena, cuenta.password_hash);
+    const dispositivo = req.headers['user-agent'] || 'Desconocido';
 
-    if (!contrasenaValida) {
+if (!contrasenaValida) {
+      console.warn(`[LOGIN FALLIDO] Usuario: "${usuario}" | IP: ${ip} | Dispositivo: ${dispositivo}`);//
+      registrarFalloLogin(claveLogin);
       return res.status(401).json({ error: 'Usuario o contraseña incorrectos.' });
     }
+
+    console.log(`[LOGIN OK] Usuario: "${usuario}" | IP: ${ip}`); //
+    fallosLogin.delete(claveLogin);
+    bloqueosLogin.delete(claveLogin);
 
     const token = crypto.randomBytes(32).toString('hex');
     await pool.execute('DELETE FROM sesiones WHERE expira_en <= NOW()');
@@ -134,14 +181,15 @@ app.get('/api/usuarios/me', requerirInicioSesion, (req, res) => {
     id: req.usuarioId,
     usuario: req.usuario,
     rol: req.rol,
-    esSuperAdministrador: req.usuario === superAdministrador
+    esSuperAdministrador: req.usuario === superAdministrador,
+    esAdministrador: req.rol === 'admin'
   });
 });
 
-app.get('/api/superadmin/usuarios', requerirInicioSesion, requerirSuperAdministrador, async (req, res) => {
+app.get('/api/superadmin/usuarios', requerirInicioSesion, requerirAdministrador, async (req, res) => {
   try {
     const [usuarios] = await pool.execute(
-      'SELECT id, nombre_usuario, rol, creado_en FROM usuarios ORDER BY nombre_usuario'
+      'SELECT id, nombre_usuario, rol, cuota_archivos_bytes, creado_en FROM usuarios ORDER BY nombre_usuario'
     );
     res.json(usuarios);
   } catch (error) {
@@ -150,7 +198,109 @@ app.get('/api/superadmin/usuarios', requerirInicioSesion, requerirSuperAdministr
   }
 });
 
-app.patch('/api/superadmin/usuarios/:id/contrasena', requerirInicioSesion, requerirSuperAdministrador, async (req, res) => {
+app.get('/api/mensaje-lateral', requerirInicioSesion, async (req, res) => {
+  try {
+    const [mensajes] = await pool.execute(
+      `SELECT contenido, expira_en FROM mensajes_laterales
+       WHERE expira_en > NOW() ORDER BY creado_en DESC LIMIT 1`
+    );
+    res.json(mensajes[0] || null);
+  } catch (error) {
+    console.error('Error al cargar mensaje lateral:', error.code || error.message);
+    res.status(500).json({ error: 'No se pudo cargar el mensaje lateral.' });
+  }
+});
+app.patch('/api/superadmin/usuarios/:id/nombre', requerirInicioSesion, requerirAdministrador, async (req, res) => {
+  const nuevoNombre = String(req.body.nombre_usuario || '').trim();
+
+  if (nuevoNombre.length < 3) {
+    return res.status(400).json({ error: 'El nombre debe tener al menos 3 caracteres.' });
+  }
+
+  try {
+    const [resultado] = await pool.execute(
+      'UPDATE usuarios SET nombre_usuario = ? WHERE id = ?',
+      [nuevoNombre, req.params.id]
+    );
+
+    if (resultado.affectedRows === 0) {
+      return res.status(404).json({ error: 'No existe ese usuario.' });
+    }
+    res.json({ ok: true });
+  } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ error: 'Ese nombre de usuario ya está siendo usado por otra persona.' });
+    }
+    console.error('Error al cambiar el nombre:', error.code || error.message);
+    res.status(500).json({ error: 'No se pudo cambiar el nombre.' });
+  }
+});
+app.get('/api/chat', requerirInicioSesion, async (req, res) => {
+  try {
+    await pool.execute(
+      'DELETE FROM chat_mensajes WHERE creado_en <= DATE_SUB(NOW(), INTERVAL 24 HOUR)'
+    );
+    const [mensajes] = await pool.execute(
+      `SELECT id, nombre_usuario AS usuario, contenido, creado_en
+       FROM chat_mensajes
+       WHERE creado_en > DATE_SUB(NOW(), INTERVAL 24 HOUR)
+       ORDER BY creado_en DESC LIMIT 50`
+    );
+    res.json(mensajes.reverse());
+  } catch (error) {
+    console.error('Error al cargar el chat:', error.code || error.message);
+    res.status(500).json({ error: 'No se pudo cargar el chat.' });
+  }
+});
+
+app.post('/api/chat', requerirInicioSesion, async (req, res) => {
+  const contenido = String(req.body.contenido || '').trim();
+  if (!contenido || contenido.length > 500) {
+    return res.status(400).json({ error: 'El mensaje debe tener entre 1 y 500 caracteres.' });
+  }
+
+  try {
+    const [resultado] = await pool.execute(
+      'INSERT INTO chat_mensajes (usuario_id, nombre_usuario, contenido) VALUES (?, ?, ?)',
+      [req.usuarioId, req.usuario, contenido]
+    );
+    res.status(201).json({ id: resultado.insertId, usuario: req.usuario, contenido });
+  } catch (error) {
+    console.error('Error al guardar mensaje del chat:', error.code || error.message);
+    res.status(500).json({ error: 'No se pudo guardar el mensaje.' });
+  }
+});
+
+app.delete('/api/superadmin/chat', requerirInicioSesion, requerirAdministrador, async (req, res) => {
+  try {
+    await pool.execute('DELETE FROM chat_mensajes');
+    res.json({ ok: true, mensaje: 'Chat vaciado.' });
+  } catch (error) {
+    console.error('Error al vaciar el chat:', error.code || error.message);
+    res.status(500).json({ error: 'No se pudo vaciar el chat.' });
+  }
+});
+
+app.post('/api/superadmin/mensaje-lateral', requerirInicioSesion, requerirAdministrador, async (req, res) => {
+  const contenido = String(req.body.contenido || '').trim();
+  if (!contenido || contenido.length > 1000) {
+    return res.status(400).json({ error: 'Escribe un mensaje de entre 1 y 1000 caracteres.' });
+  }
+
+  try {
+    await pool.execute('DELETE FROM mensajes_laterales WHERE expira_en <= NOW()');
+    await pool.execute(
+      'INSERT INTO mensajes_laterales (contenido, expira_en) VALUES (?, DATE_ADD(NOW(), INTERVAL 24 HOUR))',
+      [contenido]
+    );
+    res.status(201).json({ ok: true, mensaje: 'Mensaje publicado durante 24 horas.' });
+  } catch (error) {
+    console.error('Error al guardar mensaje lateral:', error.code || error.message);
+    res.status(500).json({ error: 'No se pudo guardar el mensaje lateral.' });
+  }
+});
+
+app.patch('/api/superadmin/usuarios/:id/contrasena', requerirInicioSesion, requerirAdministrador, async (req, res) => {
   const contrasena = String(req.body.contrasena || '');
 
   if (contrasena.length < 8) {
@@ -171,6 +321,29 @@ app.patch('/api/superadmin/usuarios/:id/contrasena', requerirInicioSesion, reque
   } catch (error) {
     console.error('Error al cambiar contraseña:', error.code || error.message);
     res.status(500).json({ error: 'No se pudo cambiar la contraseña.' });
+  }
+});
+
+app.patch('/api/superadmin/usuarios/:id/cuota', requerirInicioSesion, requerirAdministrador, async (req, res) => {
+  const megabytes = Number(req.body.megabytes);
+  const bytes = megabytes * 1024 * 1024;
+
+  if (!Number.isInteger(megabytes) || megabytes < 500 || bytes > cuotaArchivosMaximaBytes) {
+    return res.status(400).json({ error: 'La cuota debe ser un número entero entre 500 MB y 10 GB.' });
+  }
+
+  try {
+    const [resultado] = await pool.execute(
+      'UPDATE usuarios SET cuota_archivos_bytes = ? WHERE id = ?',
+      [bytes, req.params.id]
+    );
+    if (resultado.affectedRows === 0) {
+      return res.status(404).json({ error: 'No existe ese usuario.' });
+    }
+    res.json({ ok: true, cuotaBytes: bytes });
+  } catch (error) {
+    console.error('Error al cambiar la cuota:', error.code || error.message);
+    res.status(500).json({ error: 'No se pudo cambiar la cuota.' });
   }
 });
 
@@ -211,7 +384,7 @@ app.patch('/api/usuarios/password', requerirInicioSesion, async (req, res) => {
 });
 
 // No hay registro público: una cuenta existente debe iniciar sesión para invitar a otra.
-app.post('/api/usuarios/registro', requerirInicioSesion, async (req, res) => {
+app.post('/api/usuarios/registro', requerirInicioSesion, requerirAdministrador, async (req, res) => {
   const usuario = String(req.body.usuario || '').trim();
   const contrasena = String(req.body.contrasena || '');
 
@@ -243,7 +416,11 @@ app.get('/api/archivos', requerirInicioSesion, async (req, res) => {
       [req.usuarioId]
     );
     const usados = archivos.reduce((total, archivo) => total + Number(archivo.tamano_bytes), 0);
-    res.json({ cuotaBytes: cuotaArchivosBytes, usadosBytes: usados, archivos });
+    const [cuota] = await pool.execute(
+      'SELECT cuota_archivos_bytes FROM usuarios WHERE id = ?',
+      [req.usuarioId]
+    );
+    res.json({ cuotaBytes: Number(cuota[0].cuota_archivos_bytes), usadosBytes: usados, archivos });
   } catch (error) {
     console.error('Error al listar archivos:', error.code || error.message);
     res.status(500).json({ error: 'No se pudieron cargar tus archivos.' });
@@ -256,7 +433,7 @@ app.post('/api/archivos', requerirInicioSesion, (req, res, next) => {
   }
   subidaArchivo.single('archivo')(req, res, error => {
     if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(413).json({ error: 'El archivo supera la cuota máxima de 500 MB.' });
+      return res.status(413).json({ error: 'El archivo supera el límite máximo permitido de 10 GB.' });
     }
     if (error) return next(error);
     next();
@@ -278,9 +455,14 @@ app.post('/api/archivos', requerirInicioSesion, (req, res, next) => {
       await fs.promises.unlink(req.file.path).catch(() => {});
       return res.status(413).json({ error: `Has alcanzado el máximo de ${maximoArchivosPorUsuario} archivos.` });
     }
-    if (usados + req.file.size > cuotaArchivosBytes) {
+    const [cuota] = await pool.execute(
+      'SELECT cuota_archivos_bytes FROM usuarios WHERE id = ?',
+      [req.usuarioId]
+    );
+    const cuotaBytes = Number(cuota[0].cuota_archivos_bytes);
+    if (usados + req.file.size > cuotaBytes) {
       await fs.promises.unlink(req.file.path).catch(() => {});
-      return res.status(413).json({ error: 'Has superado tu cuota de 500 MB.' });
+      return res.status(413).json({ error: 'Has superado tu cuota de almacenamiento.' });
     }
 
     const [resultado] = await pool.execute(
@@ -402,12 +584,12 @@ app.get('/usuarios/mi-cuenta.html', requerirInicioSesion, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'usuarios', 'mi-cuenta.html'));
 });
 
-app.get('/usuarios/superadmin.html', requerirInicioSesion, requerirSuperAdministrador, (req, res) => {
+app.get('/usuarios/superadmin.html', requerirInicioSesion, requerirAdministrador, (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.sendFile(path.join(__dirname, 'public', 'usuarios', 'superadmin.html'));
 });
 
-app.get(['/usuarios/crear-usuario.html', '/usuarios/invitar-usuario.html'], requerirInicioSesion, (req, res) => {
+app.get(['/usuarios/crear-usuario.html', '/usuarios/invitar-usuario.html'], requerirInicioSesion, requerirAdministrador, (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.sendFile(path.join(__dirname, 'public', 'usuarios', 'crear-usuario.html'));
 });
@@ -420,6 +602,11 @@ app.get('/juego.html', requerirInicioSesion, (req, res) => {
 app.get('/usuarios/archivos.html', requerirInicioSesion, (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.sendFile(path.join(__dirname, 'public', 'usuarios', 'archivos.html'));
+});
+
+app.get('/usuarios/biblioteca.html', requerirInicioSesion, (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.sendFile(path.join(__dirname, 'public', 'usuarios', 'biblioteca.html'));
 });
 
 // 3. Servir archivos estáticos
@@ -629,6 +816,92 @@ app.put('/api/juegos/:id/estado', requerirInicioSesion, async (req, res) => {
   }
 });
 
+app.get('/api/juegos/:id/marcadores', requerirInicioSesion, async (req, res) => {
+  try {
+    const [filas] = await pool.execute(
+      `SELECT
+         EXISTS(SELECT 1 FROM juegos_guardados WHERE usuario_id = ? AND juego_id = ?) AS guardado,
+         EXISTS(SELECT 1 FROM juegos_me_gusta WHERE usuario_id = ? AND juego_id = ?) AS me_gusta`,
+      [req.usuarioId, req.params.id, req.usuarioId, req.params.id]
+    );
+    res.json({ guardado: Boolean(filas[0].guardado), meGusta: Boolean(filas[0].me_gusta) });
+  } catch (error) {
+    console.error('Error al consultar marcadores:', error.code || error.message);
+    res.status(500).json({ error: 'No se pudieron consultar tus marcadores.' });
+  }
+});
+
+app.put('/api/juegos/:id/guardado', requerirInicioSesion, async (req, res) => {
+  try {
+    if (req.body.guardado) {
+      await pool.execute(
+        'INSERT IGNORE INTO juegos_guardados (usuario_id, juego_id) VALUES (?, ?)',
+        [req.usuarioId, req.params.id]
+      );
+    } else {
+      await pool.execute(
+        'DELETE FROM juegos_guardados WHERE usuario_id = ? AND juego_id = ?',
+        [req.usuarioId, req.params.id]
+      );
+    }
+    res.json({ ok: true, guardado: Boolean(req.body.guardado) });
+  } catch (error) {
+    console.error('Error al guardar marcador:', error.code || error.message);
+    res.status(500).json({ error: 'No se pudo guardar el juego.' });
+  }
+});
+
+app.put('/api/juegos/:id/me-gusta', requerirInicioSesion, async (req, res) => {
+  try {
+    if (req.body.meGusta) {
+      await pool.execute(
+        'INSERT IGNORE INTO juegos_me_gusta (usuario_id, juego_id) VALUES (?, ?)',
+        [req.usuarioId, req.params.id]
+      );
+    } else {
+      await pool.execute(
+        'DELETE FROM juegos_me_gusta WHERE usuario_id = ? AND juego_id = ?',
+        [req.usuarioId, req.params.id]
+      );
+    }
+    res.json({ ok: true, meGusta: Boolean(req.body.meGusta) });
+  } catch (error) {
+    console.error('Error al guardar me gusta:', error.code || error.message);
+    res.status(500).json({ error: 'No se pudo guardar el me gusta.' });
+  }
+});
+
+app.get('/api/mi-biblioteca', requerirInicioSesion, async (req, res) => {
+  try {
+    const [filas] = await pool.execute(
+      `SELECT juego_id,
+         MAX(guardado) AS guardado,
+         MAX(me_gusta) AS me_gusta,
+         MAX(estado) AS estado
+       FROM (
+         SELECT juego_id, 1 AS guardado, 0 AS me_gusta, NULL AS estado
+         FROM juegos_guardados WHERE usuario_id = ?
+         UNION ALL
+         SELECT juego_id, 0, 1, NULL
+         FROM juegos_me_gusta WHERE usuario_id = ?
+         UNION ALL
+         SELECT juego_id, 0, 0, estado
+         FROM juegos_usuario WHERE usuario_id = ?
+       ) biblioteca
+       GROUP BY juego_id ORDER BY juego_id`,
+      [req.usuarioId, req.usuarioId, req.usuarioId]
+    );
+    const biblioteca = await Promise.all(filas.map(async fila => ({
+      ...fila,
+      juego: await consultarJuegoIGDB(fila.juego_id)
+    })));
+    res.json(biblioteca.filter(item => item.juego));
+  } catch (error) {
+    console.error('Error al cargar biblioteca:', error.code || error.message);
+    res.status(500).json({ error: 'No se pudo cargar tu biblioteca.' });
+  }
+});
+
 app.get('/api/juegos/:id/comentarios', requerirInicioSesion, async (req, res) => {
   try {
     const [comentarios] = await pool.execute(
@@ -672,6 +945,13 @@ app.use((req, res) => {
 });
 
 async function iniciarServidor() {
+  try {
+    await pool.query(
+      `ALTER TABLE usuarios ADD COLUMN cuota_archivos_bytes BIGINT UNSIGNED NOT NULL DEFAULT ${cuotaArchivosPorDefectoBytes}`
+    );
+  } catch (error) {
+    if (error.code !== 'ER_DUP_FIELDNAME') throw error;
+  }
   await pool.query(`
     CREATE TABLE IF NOT EXISTS sesiones (
       token_hash CHAR(64) NOT NULL,
@@ -692,6 +972,49 @@ async function iniciarServidor() {
       actualizado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (usuario_id, juego_id),
       CONSTRAINT fk_juegos_usuario_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+        ON UPDATE CASCADE ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS juegos_guardados (
+      usuario_id INT UNSIGNED NOT NULL,
+      juego_id INT UNSIGNED NOT NULL,
+      creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (usuario_id, juego_id),
+      CONSTRAINT fk_juegos_guardados_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+        ON UPDATE CASCADE ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS mensajes_laterales (
+      id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+      contenido VARCHAR(1000) NOT NULL,
+      creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      expira_en DATETIME NOT NULL,
+      PRIMARY KEY (id),
+      KEY ix_mensajes_laterales_expira (expira_en)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS chat_mensajes (
+      id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+      usuario_id INT UNSIGNED NOT NULL,
+      nombre_usuario VARCHAR(80) NOT NULL,
+      contenido VARCHAR(500) NOT NULL,
+      creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY ix_chat_mensajes_creado (creado_en),
+      CONSTRAINT fk_chat_mensajes_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+        ON UPDATE CASCADE ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS juegos_me_gusta (
+      usuario_id INT UNSIGNED NOT NULL,
+      juego_id INT UNSIGNED NOT NULL,
+      creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (usuario_id, juego_id),
+      CONSTRAINT fk_juegos_me_gusta_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
         ON UPDATE CASCADE ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Frikicoments</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css?v=20260927-1">
+    <link rel="stylesheet" href="/css/styles.css?v=20260927-3">
 </head>
 <body>
     <div class="container">
@@ -28,119 +28,115 @@
                     <a class="btn primary" id="invite-link" href="/usuarios/invitar-usuario.html">Invitar usuario</a>
                     <a class="btn primary" href="/usuarios/archivos.html">Mis archivos</a>
                     <a class="btn primary" id="superadmin-link" href="/usuarios/superadmin.html" hidden>Gestionar usuarios</a>
+                    <a class="btn primary" href="/usuarios/biblioteca.html">Mi biblioteca</a>
                     <button class="btn secondary" id="logout-button" type="button">Cerrar sesión</button>
                 </div>
             </nav>
         </header>
 
         <div id="contenido-principal" hidden>
-        <section class="card" style="margin-top: 24px;">
-            <h3 class="panel-title">Buscar Videojuegos</h3>
-            <form action="/resultados" method="GET" class="form-box" style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <input type="text" name="q" placeholder="Buscar juego (ej: Zelda, Mario, Cyberpunk)..." style="flex: 1; min-width: 220px;" required>
-                <button class="btn primary" type="submit">Buscar</button>
-            </form>
-        </section>
-
-        <section class="hero">
-            <div class="card featured">
-                <div>
-                    <span class="badge">Trending</span>
-                    <h2>¿Cuál es tu próximo videojuego favorito?</h2>
-                    <p>La comunidad de gamers comparte reseñas, valoraciones y recomendaciones para descubrir joyas ocultas y lanzamientos del momento. Queremos ser una pagina desenfadada.</p>
+            <button class="chat-toggle" id="chat-toggle" type="button">Abrir chat</button>
+            <aside class="mensaje-lateral" id="mensaje-lateral" hidden>
+                <div class="chat-cabecera">
+                    <h2 class="panel-title">Chat Frikicoments</h2>
+                    <button class="chat-cerrar" id="chat-cerrar" type="button" aria-label="Cerrar chat">X</button>
                 </div>
-
-                <div class="btn-group">
-                    <button class="btn primary">Ver reseñas</button>
-                    <button class="btn secondary">Añadir comentario</button>
-                </div>
-            </div>
-
-            <div class="stats">
-                <div class="stat card">
-                    <strong>12.4k</strong>
-                    <span>Reseñas publicadas</span>
-                </div>
-                <div class="stat card">
-                    <strong>3.9/5</strong>
-                    <span>Valoración media</span>
-                </div>
-                <div class="stat card">
-                    <strong>1.2k</strong>
-                    <span>Jugadores activos</span>  
-                </div>
-            </div>
-        </section>
-
-        <section class="main-grid">
-            <div>
-                <h3 class="panel-title">Últimos comentarios</h3>
-                <div class="comment-list" id="comment-list">
-                    <article class="comment">
-                        <div class="comment-header">
-                            <div class="user">
-                                <div class="avatar">A</div>
-                                <div class="username">Alex</div>
-                            </div>
-                            <span class="game-tag">Zelda</span>
-                        </div>
-                        <p>Una experiencia increíble. El diseño de mundo, la historia y la jugabilidad están muy bien cuidados. ¡Definitivamente merece la pena!</p>
-                    </article>
-
-                    <article class="comment">
-                        <div class="comment-header">
-                            <div class="user">
-                                <div class="avatar">M</div>
-                                <div class="username">Marta</div>
-                            </div>
-                            <span class="game-tag">Cyberpunk</span>
-                        </div>
-                        <p>El mundo es enorme y detallado, aunque el inicio se siente algo lento. Cuando entra en marcha, es espectacular.</p>
-                    </article>
-                </div>
-            </div>
-
-            <aside class="sidebar">
-                <div class="card">
-                    <h3 class="panel-title">Deja tu opinión</h3>
-                    <form class="form-box" id="form-comentario">
-                        <label for="juego-comentario">
-                            Juego
-                            <select id="juego-comentario" name="juego" required>
-                                <option value="">Selecciona un juego</option>
-                                <option>Cyberpunk 2077</option>
-                                <option>The Legend of Zelda</option>
-                                <option>God of War</option>
-                                <option>Halo Infinite</option>
-                            </select>
-                        </label>
-
-                        <label for="texto-comentario">
-                            Comentario
-                            <textarea id="texto-comentario" name="contenido" maxlength="5000" placeholder="Escribe tu reseña..." required></textarea>
-                        </label>
-
-                        <button class="btn primary" type="submit">Publicar comentario</button>
-                        <p class="auth-message" id="comentario-mensaje" role="status" aria-live="polite"></p>
-                    </form>
-                </div>
-
-                <div class="card">
-                    <h3 class="panel-title">Top juegos</h3>
-                    <ul class="list">
-                        <li>1. Elden Ring</li>
-                        <li>2. Zelda: Tears of the Kingdom</li>
-                        <li>3. God of War Ragnarök</li>
-                        <li>4. Horizon Forbidden West</li>
-                    </ul>
-                </div>
-
-                <div class="card">
-                    <h3 class="panel-title">Estado del sitio</h3>
-                    <span class="status">Servidor activo</span>
-                </div>
+                <div class="chat-mensajes" id="chat-mensajes"></div>
+                <form class="form-box chat-form" id="chat-form">
+                    <label for="chat-contenido">Escribe un mensaje</label>
+                    <textarea id="chat-contenido" maxlength="500" required></textarea>
+                    <button class="btn primary" type="submit">Enviar</button>
+                    <p class="auth-message" id="chat-mensaje" role="status" aria-live="polite"></p>
+                </form>
             </aside>
-        </section>
+
+            <section class="card" style="margin-top: 24px;">
+                <h3 class="panel-title">Buscar Videojuegos</h3>
+                <form action="/resultados" method="GET" class="form-box" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <input type="text" name="q" placeholder="Buscar juego (ej: Zelda, Mario, Cyberpunk)..." style="flex: 1; min-width: 220px;" required>
+                    <button class="btn primary" type="submit">Buscar</button>
+                </form>
+            </section>
+
+            <section class="hero">
+                <div class="card featured">
+                    <div>
+                        <span class="badge">Trending</span>
+                        <h2>¿Cuál es tu próximo videojuego favorito?</h2>
+                        <p>La comunidad de gamers comparte reseñas, valoraciones y recomendaciones para descubrir joyas ocultas y lanzamientos del momento. Queremos ser una pagina desenfadada.</p>
+                    </div>
+            
+                    <div class="btn-group">
+                        <button class="btn primary">Ver reseñas</button>
+                        <button class="btn secondary">Añadir comentario</button>
+                    </div>
+                </div>
+
+                <div class="stats">
+                    <div class="stat card">
+                        <strong>12.4k</strong>
+                        <span>Reseñas publicadas</span>
+                    </div>
+                    <div class="stat card">
+                        <strong>3.9/5</strong>
+                        <span>Valoración media</span>
+                    </div>
+                    <div class="stat card">
+                        <strong>1.2k</strong>
+                        <span>Jugadores activos</span>  
+                    </div>
+                </div>
+            </section>
+
+            <section class="main-grid">
+                <div>
+                    <h3 class="panel-title">Últimos comentarios</h3>
+                    <div class="comment-list" id="comment-list">
+                        <!-- JavaScript insertará los comentarios reales de MySQL aquí automáticamente -->
+                    </div>
+                </div>
+
+                <aside class="sidebar">
+                    <div class="card">
+                        <h3 class="panel-title">Deja tu opinión</h3>
+                        <form class="form-box" id="form-comentario">
+                            <label for="juego-comentario">
+                                Juego
+                                <select id="juego-comentario" name="juego" required>
+                                    <option value="">Selecciona un juego</option>
+                                    <option>Cyberpunk 2077</option>
+                                    <option>The Legend of Zelda</option>
+                                    <option>God of War</option>
+                                    <option>Halo Infinite</option>
+                                </select>
+                            </label>
+
+                            <label for="texto-comentario">
+                                Comentario
+                                <textarea id="texto-comentario" name="contenido" maxlength="5000" placeholder="Escribe tu reseña..." required></textarea>
+                            </label>
+
+                            <button class="btn primary" type="submit">Publicar comentario</button>
+                            <p class="auth-message" id="comentario-mensaje" role="status" aria-live="polite"></p>
+                        </form>
+                    </div>
+
+                    <div class="card">
+                        <h3 class="panel-title">Top juegos</h3>
+                        <ul class="list">
+                            <li>1. Elden Ring</li>
+                            <li>2. Zelda: Tears of the Kingdom</li>
+                            <li>3. God of War Ragnarök</li>
+                            <li>4. Horizon Forbidden West</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <h3 class="panel-title">Estado del sitio</h3>
+                        <span class="status">Servidor activo</span>
+                    </div>
+                </aside>
+            </section>
         </div>
     </div>
 
@@ -174,20 +170,96 @@
         const listaComentarios = document.querySelector('#comment-list');
         const formularioComentario = document.querySelector('#form-comentario');
         const mensajeComentario = document.querySelector('#comentario-mensaje');
+        const mensajeLateral = document.querySelector('#mensaje-lateral');
+        const chatMensajes = document.querySelector('#chat-mensajes');
+        const chatForm = document.querySelector('#chat-form');
+        const chatContenido = document.querySelector('#chat-contenido');
+        const chatMensaje = document.querySelector('#chat-mensaje');
+        const chatToggle = document.querySelector('#chat-toggle');
+        const chatCerrar = document.querySelector('#chat-cerrar');
 
         function crearElemento(tag, clase, texto) {
             const elemento = document.createElement(tag);
             if (clase) elemento.className = clase;
-            elemento.textContent = texto;
+            if (texto !== undefined) elemento.textContent = texto;
             return elemento;
         }
 
         function colorDeUsuario(usuario) {
             const colores = ['#8be9fd', '#50fa7b', '#f7d51d', '#ff79c6', '#ffb86c', '#bd93f9'];
             let hash = 0;
-            for (const caracter of usuario) hash = (hash * 31 + caracter.charCodeAt(0)) >>> 0;
+            for (let i = 0; i < usuario.length; i++) hash = (hash * 31 + usuario.charCodeAt(i)) >>> 0;
             return colores[hash % colores.length];
         }
+
+        async function cargarChat() {
+            try {
+                const respuesta = await fetch('/api/chat');
+                const mensajes = await respuesta.json();
+                if (!respuesta.ok) return;
+                chatMensajes.replaceChildren();
+                mensajes.forEach(mensaje => {
+                    const elemento = document.createElement('article');
+                    elemento.className = 'chat-mensaje';
+                    elemento.style.setProperty('--usuario-color', colorDeUsuario(mensaje.usuario));
+                    const autor = document.createElement('strong');
+                    autor.textContent = mensaje.usuario;
+                    const texto = document.createElement('p');
+                    texto.textContent = mensaje.contenido;
+                    elemento.append(autor, texto);
+                    chatMensajes.append(elemento);
+                });
+                if (window.innerWidth > 800) mensajeLateral.hidden = false;
+            } catch (error) {
+                mensajeLateral.hidden = true;
+            }
+        }
+
+        function abrirChat() {
+            mensajeLateral.hidden = false;
+            document.body.classList.add('chat-abierto');
+            window.history.pushState({ chat: true }, '', window.location.href);
+        }
+
+        function cerrarChat() {
+            document.body.classList.remove('chat-abierto');
+            mensajeLateral.hidden = true;
+        }
+
+        chatToggle.addEventListener('click', abrirChat);
+        chatCerrar.addEventListener('click', cerrarChat);
+        window.addEventListener('popstate', cerrarChat);
+
+        let actualizandoChat = false;
+
+        async function actualizarChat() {
+            if (actualizandoChat || document.hidden) return;
+            actualizandoChat = true;
+            try {
+                await cargarChat();
+            } finally {
+                actualizandoChat = false;
+            }
+        }
+
+        chatForm.addEventListener('submit', async evento => {
+            evento.preventDefault();
+            chatMensaje.classList.remove('error');
+            try {
+                const respuesta = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contenido: chatContenido.value })
+                });
+                const datos = await respuesta.json();
+                if (!respuesta.ok) throw new Error(datos.error || 'No se pudo enviar el mensaje.');
+                chatContenido.value = '';
+                await cargarChat();
+            } catch (error) {
+                chatMensaje.textContent = error.message;
+                chatMensaje.classList.add('error');
+            }
+        });
 
         async function cargarComentarios() {
             try {
@@ -234,11 +306,13 @@
 
                 const datos = await respuesta.json();
                 nombreCuenta.textContent = `Sesión: ${datos.usuario}`;
-                enlaceSuperadmin.hidden = !datos.esSuperAdministrador;
+                enlaceSuperadmin.hidden = !datos.esAdministrador;
                 formularioLogin.hidden = true;
                 accionesCuenta.hidden = false;
                 contenidoPrincipal.hidden = false;
                 comprobarConexion();
+                cargarChat();
+                window.setInterval(actualizarChat, 10000);
                 cargarComentarios();
                 return true;
             } catch (error) {

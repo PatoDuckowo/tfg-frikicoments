@@ -11,7 +11,7 @@
   <main class="container">
     <header>
       <h1>Superadministración</h1>
-      <p>Gestiona las contraseñas de las cuentas.</p>
+      <p>Gestiona nombres, contraseñas y espacio de las cuentas.</p>
     </header>
 
     <section class="card">
@@ -20,11 +20,32 @@
       <div id="lista-usuarios"></div>
     </section>
 
+    <section class="card" style="margin-top: 24px;">
+      <h2 class="panel-title">Mensaje lateral</h2>
+      <p>El aviso aparecerá en la home durante 24 horas.</p>
+      <form class="form-box" id="form-mensaje-lateral">
+        <label for="contenido-mensaje-lateral">Mensaje</label>
+        <textarea id="contenido-mensaje-lateral" maxlength="1000" required></textarea>
+        <button class="btn primary" type="submit">Publicar aviso</button>
+      </form>
+      <p id="mensaje-aviso" class="auth-message" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="card" style="margin-top: 24px;">
+      <h2 class="panel-title">Chat</h2>
+      <button class="btn danger" id="vaciar-chat" type="button">Vaciar chat</button>
+      <p id="mensaje-chat" class="auth-message" role="status" aria-live="polite"></p>
+    </section>
+
     <p><a class="btn-volver" href="mi-cuenta.html">Volver a mi cuenta</a></p>
   </main>
   <script>
     const lista = document.querySelector('#lista-usuarios');
     const mensaje = document.querySelector('#mensaje');
+    const formularioAviso = document.querySelector('#form-mensaje-lateral');
+    const mensajeAviso = document.querySelector('#mensaje-aviso');
+    const vaciarChat = document.querySelector('#vaciar-chat');
+    const mensajeChat = document.querySelector('#mensaje-chat');
 
     function mostrarUsuarios(usuarios) {
       lista.replaceChildren();
@@ -36,25 +57,73 @@
         const nombre = document.createElement('strong');
         nombre.textContent = usuario.nombre_usuario;
         datos.append(nombre, document.createTextNode(` (${usuario.rol})`));
-        const formulario = document.createElement('form');
-        formulario.className = 'form-box';
-        formulario.dataset.id = usuario.id;
-        const etiqueta = document.createElement('label');
-        etiqueta.htmlFor = `contrasena-${usuario.id}`;
-        etiqueta.textContent = 'Nueva contraseña';
-        const entrada = document.createElement('input');
-        entrada.id = `contrasena-${usuario.id}`;
-        entrada.name = 'contrasena';
-        entrada.type = 'password';
-        entrada.minLength = 8;
-        entrada.autocomplete = 'new-password';
-        entrada.required = true;
-        const boton = document.createElement('button');
-        boton.className = 'btn primary';
-        boton.type = 'submit';
-        boton.textContent = 'Restablecer contraseña';
-        formulario.append(etiqueta, entrada, boton);
-        tarjeta.append(datos, formulario);
+
+        // Nuevo formulario: Cambiar Nombre
+        const formularioNombre = document.createElement('form');
+        formularioNombre.className = 'form-box';
+        formularioNombre.dataset.id = usuario.id;
+        formularioNombre.dataset.tipo = 'nombre';
+        const etiquetaNombre = document.createElement('label');
+        etiquetaNombre.htmlFor = `nombre-${usuario.id}`;
+        etiquetaNombre.textContent = 'Nombre de usuario';
+        const entradaNombre = document.createElement('input');
+        entradaNombre.id = `nombre-${usuario.id}`;
+        entradaNombre.name = 'nombre_usuario';
+        entradaNombre.type = 'text';
+        entradaNombre.minLength = 3;
+        entradaNombre.value = usuario.nombre_usuario;
+        entradaNombre.required = true;
+        const botonNombre = document.createElement('button');
+        botonNombre.className = 'btn secondary';
+        botonNombre.type = 'submit';
+        botonNombre.textContent = 'Guardar nombre';
+        formularioNombre.append(etiquetaNombre, entradaNombre, botonNombre);
+
+        // Formulario: Contraseña
+        const formularioContrasena = document.createElement('form');
+        formularioContrasena.className = 'form-box';
+        formularioContrasena.dataset.id = usuario.id;
+        formularioContrasena.dataset.tipo = 'contrasena';
+        const etiquetaContrasena = document.createElement('label');
+        etiquetaContrasena.htmlFor = `contrasena-${usuario.id}`;
+        etiquetaContrasena.textContent = 'Nueva contraseña';
+        const entradaContrasena = document.createElement('input');
+        entradaContrasena.id = `contrasena-${usuario.id}`;
+        entradaContrasena.name = 'contrasena';
+        entradaContrasena.type = 'password';
+        entradaContrasena.minLength = 8;
+        entradaContrasena.autocomplete = 'new-password';
+        entradaContrasena.required = true;
+        const botonContrasena = document.createElement('button');
+        botonContrasena.className = 'btn primary';
+        botonContrasena.type = 'submit';
+        botonContrasena.textContent = 'Restablecer contraseña';
+        formularioContrasena.append(etiquetaContrasena, entradaContrasena, botonContrasena);
+
+        // Formulario: Cuota
+        const formularioCuota = document.createElement('form');
+        formularioCuota.className = 'form-box';
+        formularioCuota.dataset.id = usuario.id;
+        formularioCuota.dataset.tipo = 'cuota';
+        const etiquetaCuota = document.createElement('label');
+        etiquetaCuota.htmlFor = `cuota-${usuario.id}`;
+        etiquetaCuota.textContent = 'Espacio máximo (MB)';
+        const entradaCuota = document.createElement('input');
+        entradaCuota.id = `cuota-${usuario.id}`;
+        entradaCuota.name = 'megabytes';
+        entradaCuota.type = 'number';
+        entradaCuota.min = '500';
+        entradaCuota.max = '10240';
+        entradaCuota.step = '1';
+        entradaCuota.value = Math.round(Number(usuario.cuota_archivos_bytes) / 1024 / 1024);
+        entradaCuota.required = true;
+        const botonCuota = document.createElement('button');
+        botonCuota.className = 'btn secondary';
+        botonCuota.type = 'submit';
+        botonCuota.textContent = 'Guardar espacio';
+        formularioCuota.append(etiquetaCuota, entradaCuota, botonCuota);
+        
+        tarjeta.append(datos, formularioNombre, formularioContrasena, formularioCuota);
         lista.append(tarjeta);
       });
     }
@@ -71,23 +140,69 @@
       const boton = formulario.querySelector('button');
       boton.disabled = true;
       mensaje.textContent = 'Guardando...';
+      mensaje.classList.remove('error');
 
       try {
-        const respuesta = await fetch(`/api/superadmin/usuarios/${formulario.dataset.id}/contrasena`, {
+        let endpoint, cuerpo, msgExito;
+
+        if (formulario.dataset.tipo === 'cuota') {
+          endpoint = 'cuota';
+          cuerpo = { megabytes: Number(formulario.megabytes.value) };
+          msgExito = 'Espacio actualizado.';
+        } else if (formulario.dataset.tipo === 'nombre') {
+          endpoint = 'nombre';
+          cuerpo = { nombre_usuario: formulario.nombre_usuario.value };
+          msgExito = 'Nombre actualizado.';
+        } else {
+          endpoint = 'contrasena';
+          cuerpo = { contrasena: formulario.contrasena.value };
+          msgExito = 'Contraseña actualizada.';
+        }
+
+        const respuesta = await fetch(`/api/superadmin/usuarios/${formulario.dataset.id}/${endpoint}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contrasena: formulario.contrasena.value })
+          body: JSON.stringify(cuerpo)
         });
         const datos = await respuesta.json();
-        if (!respuesta.ok) throw new Error(datos.error || 'No se pudo cambiar la contraseña.');
-        formulario.reset();
-        mensaje.textContent = 'Contraseña actualizada.';
+        if (!respuesta.ok) throw new Error(datos.error || 'No se pudo aplicar el cambio.');
+        
+        if (formulario.dataset.tipo === 'contrasena') formulario.reset();
+        if (formulario.dataset.tipo === 'nombre') cargarUsuarios();
+        mensaje.textContent = msgExito;
       } catch (error) {
         mensaje.textContent = error.message;
         mensaje.classList.add('error');
       } finally {
         boton.disabled = false;
       }
+    });
+
+    formularioAviso.addEventListener('submit', async evento => {
+      evento.preventDefault();
+      mensajeAviso.classList.remove('error');
+      try {
+        const respuesta = await fetch('/api/superadmin/mensaje-lateral', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contenido: formularioAviso['contenido-mensaje-lateral'].value })
+        });
+        const datos = await respuesta.json();
+        if (!respuesta.ok) throw new Error(datos.error || 'No se pudo publicar el aviso.');
+        formularioAviso.reset();
+        mensajeAviso.textContent = datos.mensaje;
+      } catch (error) {
+        mensajeAviso.textContent = error.message;
+        mensajeAviso.classList.add('error');
+      }
+    });
+
+    vaciarChat.addEventListener('click', async () => {
+      if (!window.confirm('¿Quieres borrar todos los mensajes del chat?')) return;
+      const respuesta = await fetch('/api/superadmin/chat', { method: 'DELETE' });
+      const datos = await respuesta.json();
+      mensajeChat.textContent = datos.mensaje || datos.error;
+      if (!respuesta.ok) mensajeChat.classList.add('error');
     });
 
     cargarUsuarios().catch(() => {
