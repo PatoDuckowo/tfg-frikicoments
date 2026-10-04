@@ -178,3 +178,8 @@ export function vigilarMensajesSinLeer() {
 }
 
 pintarMenu();
+
+// PWA: el service worker permite instalar la web y muestra una página propia sin conexión.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
