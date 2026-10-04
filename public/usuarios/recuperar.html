@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- El enlace lleva el código de recuperación: que nunca se envíe a otra web como referencia. -->
+  <meta name="referrer" content="no-referrer">
+  <title>Recuperar contraseña - Frikicoments</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="escena-login" aria-hidden="true"></div>
+  <main class="container">
+    <header class="cabecera-pagina">
+      <div class="cabecera-pagina-textos">
+        <a class="logo-enlace logo-sitio" href="/" title="Ir a la portada">Frikicoments</a>
+        <h1>Recuperar contraseña</h1>
+        <p>Elige una contraseña nueva para tu cuenta.</p>
+      </div>
+      <nav class="cabecera-nav" aria-label="Navegación principal" data-menu="publico"></nav>
+    </header>
+
+    <section class="card">
+      <h2 class="panel-title">Nueva contraseña</h2>
+      <p class="ayuda-formulario" id="estado-enlace">Comprobando el enlace...</p>
+      <form class="form-box formulario-cuenta" id="form-recuperar" hidden>
+        <label for="contrasena">Contraseña nueva</label>
+        <input id="contrasena" name="contrasena" type="password" minlength="8" maxlength="200" placeholder="Mínimo 8 caracteres" autocomplete="new-password" required>
+
+        <label for="confirmar-contrasena">Repetir contraseña</label>
+        <input id="confirmar-contrasena" name="confirmar-contrasena" type="password" minlength="8" maxlength="200" placeholder="Repite la contraseña" autocomplete="new-password" required>
+
+        <button class="btn primary" type="submit">Guardar contraseña</button>
+      </form>
+      <p class="auth-message" id="mensaje" role="status" aria-live="polite"></p>
+      <a class="btn secondary" id="ir-login" href="/" hidden>Iniciar sesión</a>
+    </section>
+  </main>
+  <script type="module" src="/js/paginas/recuperar.js"></script>
+</body>
+</html>

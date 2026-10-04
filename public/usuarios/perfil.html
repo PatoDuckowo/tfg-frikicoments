@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personas - Frikicoments</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/catalogo.css">
+</head>
+<body>
+  <div class="escena-login" aria-hidden="true"></div>
+  <header class="cabecera-pagina">
+    <div class="cabecera-pagina-textos">
+      <a class="logo-enlace logo-sitio" href="/" title="Ir a la portada">Frikicoments</a>
+      <h1 id="titulo">Personas</h1>
+      <p id="descripcion">Sigue a otras personas. Si os seguís mutuamente, podéis hablar por chat privado.</p>
+    </div>
+    <nav class="cabecera-nav" aria-label="Navegación principal" data-menu="personas"></nav>
+  </header>
+
+  <main class="pagina-social">
+    <p id="mensaje" class="auth-message" role="status" aria-live="polite"></p>
+
+    <!-- Sin ?u=: listado de personas -->
+    <section class="ficha-pixel" id="seccion-personas" hidden>
+      <h2 class="panel-title">Comunidad</h2>
+      <div class="lista-personas" id="lista-personas"></div>
+    </section>
+
+    <!-- Con ?u=nombre: perfil de una persona -->
+    <section class="ficha-pixel perfil-ficha" id="seccion-perfil" hidden>
+      <div class="perfil-identidad">
+        <!-- Hoy muestra la inicial; aquí irá el icono de perfil cuando se puedan subir. -->
+        <div class="avatar perfil-avatar" id="perfil-avatar" aria-hidden="true"></div>
+        <div>
+          <h2 class="perfil-nombre" id="perfil-nombre"></h2>
+          <p class="perfil-datos" id="perfil-datos"></p>
+        </div>
+      </div>
+      <div class="perfil-acciones" id="perfil-acciones"></div>
+    </section>
+
+    <!-- Solo en tu propio perfil -->
+    <section class="ficha-pixel configuracion-perfil" id="seccion-configuracion" hidden>
+      <h2 class="panel-title">Configuración del perfil</h2>
+      <form class="form-box formulario-cuenta" id="form-nombre">
+        <label for="nuevo-nombre">Nombre de usuario</label>
+        <div class="campo-admin-fila">
+          <input id="nuevo-nombre" name="nombre_usuario" type="text" minlength="3" maxlength="30" autocomplete="username" required>
+          <button class="btn secondary" type="submit">Guardar nombre</button>
+        </div>
+        <p class="ayuda-formulario">Entre 3 y 30 caracteres: letras, números, guion, guion bajo o punto. Tus comentarios y mensajes pasarán a mostrar el nombre nuevo, y la próxima vez entrarás con él.</p>
+      </form>
+      <p class="ayuda-formulario">Icono de perfil: próximamente podrás subir una imagen que sustituirá a la inicial.</p>
+      <div class="acciones-cuenta">
+        <a class="btn primary" href="/usuarios/cambiar-contrasena.html">Cambiar contraseña</a>
+      </div>
+      <p id="mensaje-configuracion" class="auth-message" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="biblioteca-perfil" id="seccion-juegos" hidden>
+      <nav class="biblioteca-tabs" aria-label="Juegos de esta persona">
+        <button class="btn" type="button" data-lista="meGusta" aria-pressed="true">Me gusta</button>
+        <button class="btn" type="button" data-lista="pendientes" aria-pressed="false">Pendientes</button>
+      </nav>
+      <div id="juegos" class="grid"></div>
+    </section>
+  </main>
+  <script type="module" src="/js/paginas/perfil.js"></script>
+</body>
+</html>

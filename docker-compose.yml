@@ -8,9 +8,8 @@ services:
       MYSQL_USER: ${DB_USER:?DB_USER debe estar definido en .env}
       MYSQL_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD debe estar definido en .env}
     volumes:
+      # Las tablas las crea la web al arrancar (migraciones en src/db/migraciones).
       - db_data:/var/lib/mysql
-      # Solo se ejecuta cuando el volumen está vacío (instalación nueva).
-      - ./sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
       interval: 10s
@@ -21,6 +20,8 @@ services:
   web:
     build: .
     restart: unless-stopped
+    # Como mucho 2 de los 4 núcleos de la Pi: el resto de servicios sigue respondiendo.
+    cpus: 2.0
     # Solo accesible desde la propia máquina: Tailscale Funnel es la única entrada.
     ports:
       - "127.0.0.1:3001:3000"

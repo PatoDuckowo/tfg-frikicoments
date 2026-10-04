@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mensajes - Frikicoments</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="escena-login" aria-hidden="true"></div>
+  <header class="cabecera-pagina">
+    <div class="cabecera-pagina-textos">
+      <a class="logo-enlace logo-sitio" href="/" title="Ir a la portada">Frikicoments</a>
+      <h1>Mensajes</h1>
+      <p>Chat privado con las personas que os seguís mutuamente.</p>
+    </div>
+    <nav class="cabecera-nav" aria-label="Navegación principal" data-menu="mensajes"></nav>
+  </header>
+
+  <main class="pagina-social">
+    <p id="mensaje" class="auth-message" role="status" aria-live="polite"></p>
+    <div class="chat-privado">
+      <aside class="ficha-pixel lista-chats" aria-label="Tus chats">
+        <h2 class="panel-title">Chats</h2>
+        <div class="lista-chats" id="lista-chats"></div>
+        <p class="aviso-privacidad">Los administradores no pueden leer tus mensajes desde la web: solo ven cuánto ocupa cada conversación y pueden borrarla.</p>
+      </aside>
+
+      <section class="ficha-pixel conversacion" id="conversacion" aria-label="Conversación">
+        <div class="conversacion-cabecera">
+          <h2 id="conversacion-titulo">Elige un chat</h2>
+          <a class="btn primary" id="conversacion-perfil" href="/usuarios/perfil.html" hidden>Ver perfil</a>
+        </div>
+        <div class="conversacion-mensajes" id="conversacion-mensajes" aria-live="polite">
+          <p class="conversacion-vacia" id="conversacion-vacia">Cuando dos personas se siguen mutuamente, aparecen aquí y pueden escribirse.</p>
+        </div>
+        <form class="conversacion-form form-box" id="form-mensaje" hidden>
+          <label class="sr-only" for="texto-mensaje">Mensaje</label>
+          <textarea id="texto-mensaje" maxlength="1000" placeholder="Escribe un mensaje (Intro para enviar)" required></textarea>
+          <button class="btn secondary" type="submit">Enviar</button>
+        </form>
+        <p class="conversacion-aviso" id="aviso-escribir" hidden></p>
+      </section>
+    </div>
+  </main>
+  <script type="module" src="/js/paginas/mensajes.js"></script>
+</body>
+</html>

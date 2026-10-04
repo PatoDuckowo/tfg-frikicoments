@@ -1,19 +1,23 @@
 {
-  "name": "tfg-mysql-connect",
+  "name": "frikicoments",
   "version": "1.0.0",
-  "description": "Servidor básico con conexión a MySQL para la página de inicio.",
-  "main": "server.js",
+  "description": "Comunidad privada de reseñas de videojuegos (Express + MySQL).",
+  "main": "src/server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js",
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
     "db:init": "node scripts/inicializar-base-datos.js",
-    "db:reset-admin": "node scripts/restablecer-admin.js"
+    "db:reset-admin": "node scripts/restablecer-admin.js",
+    "test": "node --test --test-concurrency=1 test/"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "dotenv": "^16.4.5",
-    "express": "^4.19.2",
+    "express": "^5.2.1",
     "multer": "^2.4.0",
     "mysql2": "^3.4.1"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

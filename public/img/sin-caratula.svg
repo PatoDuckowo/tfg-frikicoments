@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 40" shape-rendering="crispEdges">
+  <title>Sin carátula</title>
+  <rect width="30" height="40" fill="#1b1f27"/>
+  <rect x="2" y="2" width="26" height="36" fill="none" stroke="#3b4252" stroke-width="1"/>
+  <!-- Mando pixelado -->
+  <g fill="#4c566a">
+    <rect x="7" y="16" width="16" height="7"/>
+    <rect x="6" y="17" width="1" height="5"/>
+    <rect x="23" y="17" width="1" height="5"/>
+    <rect x="5" y="19" width="1" height="4"/>
+    <rect x="24" y="19" width="1" height="4"/>
+  </g>
+  <g fill="#1b1f27">
+    <rect x="9" y="19" width="3" height="1"/>
+    <rect x="10" y="18" width="1" height="3"/>
+    <rect x="19" y="18" width="1" height="1"/>
+    <rect x="21" y="19" width="1" height="1"/>
+  </g>
+  <g fill="#e76e55">
+    <rect x="12" y="28" width="6" height="1"/>
+    <rect x="11" y="29" width="1" height="1"/>
+    <rect x="18" y="29" width="1" height="1"/>
+  </g>
+</svg>

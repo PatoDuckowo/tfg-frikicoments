@@ -1,3 +1,6 @@
+-- Esquema de partida: todas las tablas tal como estaban antes de usar migraciones.
+-- En una base existente no cambia nada (CREATE TABLE IF NOT EXISTS).
+
 CREATE TABLE IF NOT EXISTS usuarios (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   nombre_usuario VARCHAR(80) NOT NULL,
@@ -117,5 +120,63 @@ CREATE TABLE IF NOT EXISTS biblioteca_orden (
   posicion INT UNSIGNED NOT NULL,
   PRIMARY KEY (usuario_id, juego_id),
   CONSTRAINT fk_biblioteca_orden_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+    ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS recuperaciones_contrasena (
+  token_hash CHAR(64) NOT NULL,
+  usuario_id INT UNSIGNED NOT NULL,
+  creado_por INT UNSIGNED NULL,
+  expira_en DATETIME NOT NULL,
+  creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (token_hash),
+  KEY ix_recuperaciones_usuario (usuario_id),
+  CONSTRAINT fk_recuperaciones_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT fk_recuperaciones_creador FOREIGN KEY (creado_por) REFERENCES usuarios(id)
+    ON UPDATE CASCADE ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS seguimientos (
+  seguidor_id INT UNSIGNED NOT NULL,
+  seguido_id INT UNSIGNED NOT NULL,
+  creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (seguidor_id, seguido_id),
+  KEY ix_seguimientos_seguido (seguido_id),
+  CONSTRAINT fk_seguimientos_seguidor FOREIGN KEY (seguidor_id) REFERENCES usuarios(id)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT fk_seguimientos_seguido FOREIGN KEY (seguido_id) REFERENCES usuarios(id)
+    ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Una conversación por pareja: usuario_menor_id < usuario_mayor_id.
+-- leido_*_hasta guarda el último mensaje que ha visto cada participante.
+CREATE TABLE IF NOT EXISTS conversaciones (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  usuario_menor_id INT UNSIGNED NOT NULL,
+  usuario_mayor_id INT UNSIGNED NOT NULL,
+  leido_menor_hasta BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  leido_mayor_hasta BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_conversaciones_pareja (usuario_menor_id, usuario_mayor_id),
+  KEY ix_conversaciones_mayor (usuario_mayor_id),
+  CONSTRAINT fk_conversaciones_menor FOREIGN KEY (usuario_menor_id) REFERENCES usuarios(id)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT fk_conversaciones_mayor FOREIGN KEY (usuario_mayor_id) REFERENCES usuarios(id)
+    ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS mensajes_privados (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  conversacion_id INT UNSIGNED NOT NULL,
+  autor_id INT UNSIGNED NOT NULL,
+  contenido VARCHAR(1000) NOT NULL,
+  creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY ix_mensajes_privados_conversacion (conversacion_id, id),
+  CONSTRAINT fk_mensajes_privados_conversacion FOREIGN KEY (conversacion_id) REFERENCES conversaciones(id)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT fk_mensajes_privados_autor FOREIGN KEY (autor_id) REFERENCES usuarios(id)
     ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

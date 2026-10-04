@@ -14,120 +14,96 @@ La idea principal es recuperar el estilo de los foros clásicos de Internet: un 
 - **mysql2** para conectar Node.js con MySQL.
 - **IGDB y Twitch** para buscar información sobre videojuegos.
 
-## Estructura principal
+## Arquitectura
+
+Es una aplicación monolítica sencilla: un único servidor Express sirve las páginas HTML y una API JSON, y MySQL guarda los datos. Las páginas no usan frameworks: cada una carga un módulo de JavaScript que pide los datos a la API.
 
 ```text
  tfg-frikicoments/
- |-- server.js                         # Servidor Express
- |-- db.js                             # Conexión con MySQL
- |-- package.json                      # Dependencias y comandos
+ |-- src/
+ |   |-- server.js            # Arranque: migraciones, limpieza periódica y servidor
+ |   |-- app.js               # Configuración de Express (la usan el servidor y los tests)
+ |   |-- config.js            # Variables de entorno y constantes
+ |   |-- db/
+ |   |   |-- pool.js          # Conexión con MySQL y transacciones
+ |   |   |-- migrar.js        # Aplica las migraciones pendientes
+ |   |   `-- migraciones/     # Cambios de la base, numerados (001_..., 002_...)
+ |   |-- middleware/          # Sesión y permisos, límites de peticiones, errores
+ |   |-- servicios/           # IGDB (con caché) y usuarios
+ |   `-- rutas/               # cuentas, admin, archivos, juegos, comunidad, páginas
  |-- public/
- |   |-- inicio.html                   # Página principal
- |   |-- resultados.html               # Resultados de búsqueda
- |   |-- css/                          # Estilos de la aplicación
- |   `-- usuarios/                     # Pantallas de usuarios
- |       |-- usuarios.html
- |       |-- crear-usuario.html
- |       |-- iniciar-sesion.html
- |       |-- mi-cuenta.html
- |       `-- cambiar-contrasena.html
- `-- memoria-soluciones/               # Documentación del desarrollo
+ |   |-- *.html, usuarios/    # Páginas
+ |   |-- js/comun.js          # Utilidades compartidas y menú de la cabecera
+ |   |-- js/paginas/          # El código de cada página
+ |   `-- css/                 # Estilos (styles.css y catalogo.css)
+ |-- scripts/                 # Inicializar la base y restablecer el administrador
+ |-- Dockerfile, docker-compose.yml
+ `-- storage/                 # Archivos subidos (fuera del repositorio)
 ```
 
 ## Funcionamiento actual
 
-La página principal permite buscar videojuegos. El servidor recibe la búsqueda, consulta la API de IGDB y devuelve los resultados para mostrarlos en la página.
+- **Cuentas por invitación.** No hay registro público: un administrador crea la cuenta con una contraseña inicial. Las contraseñas se guardan como hashes bcrypt y la sesión es una cookie HttpOnly cuyo token solo se guarda en la base como hash SHA-256.
+- **Recuperar la contraseña sin correo.** Un administrador genera un enlace de un solo uso (caduca en 24 horas) y se lo envía a la persona, que elige la contraseña nueva.
+- **Juegos.** La búsqueda y las fichas vienen de IGDB. Los datos de cada juego se guardan en caché 24 horas.
+- **Reseñas.** Una sola tabla, identificada por el id de IGDB: lo que se publica en la portada aparece también en la ficha del juego.
+- **Biblioteca.** Juegos guardados, con «me gusta» o con estado (pendiente, jugado, abandonado), ordenables a mano.
+- **Perfiles y chat privado.** Se puede ver lo que le gusta y tiene pendiente cada persona y seguirla. Si dos personas se siguen mutuamente, pueden hablar por chat privado. Los administradores solo ven cuánto ocupa cada conversación y pueden borrarla.
+- **Archivos personales** con cuota por usuario y comprobación del espacio libre en disco.
+- **Protección contra abusos:** límites de peticiones por IP y por usuario, y bloqueo progresivo de los intentos de login fallidos.
 
-La aplicación guarda las cuentas y comentarios en MySQL. Las contraseñas se guardan como hashes bcrypt. No hay registro público: para abrir «Invitar usuario» y crear otra cuenta, la persona que invita debe haber iniciado sesión. La cuenta invitada recibe el rol `usuario`; su contraseña inicial la define quien la invita y se le debe compartir de forma privada. Los archivos adjuntos se implementarán aparte: el archivo irá al disco y MySQL guardará sus metadatos.
+### Base de datos y migraciones
 
-### Inicializar MySQL en una instalación nueva
+Las tablas no se crean a mano. Al arrancar, el servidor aplica en orden las migraciones de `src/db/migraciones` que todavía no estén en la tabla `migraciones`. Para cambiar la base, se añade un archivo nuevo con el número siguiente; nunca se modifica uno ya aplicado.
 
-Configura en `.env` `DB_NAME=frikicoments`, `DB_USER`, `DB_PASSWORD`, `LOGIN_USERNAME` y `LOGIN_PASSWORD`. La cuenta `LOGIN_USERNAME` se crea como administrador inicial. Desde la carpeta del proyecto ejecuta:
+### Inicializar una instalación nueva
+
+Configura en `.env` `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `LOGIN_USERNAME`, `LOGIN_PASSWORD`, `IGDB_CLIENT_ID` e `IGDB_CLIENT_SECRET`. La cuenta `LOGIN_USERNAME` es el superadministrador.
 
 ```bash
 npm install
-npm run db:init
+npm run db:init   # aplica las migraciones y crea el superadministrador
 ```
 
-El script crea las tablas `usuarios` y `comentarios`, guarda el admin con bcrypt e importa las cuentas existentes de `usuarios.json` como hashes, si el archivo privado está presente. Las cuentas duplicadas no se sobrescriben. Conserva el JSON privado hasta comprobar que las cuentas importadas pueden iniciar sesión; nunca lo subas a GitHub.
-
-Si se olvida la contraseña del admin, cambia `LOGIN_PASSWORD` en `.env` y ejecuta `npm run db:reset-admin`; el comando actualiza el hash bcrypt de `LOGIN_USERNAME` sin mostrar la contraseña.
+Si se olvida la contraseña del superadministrador, cambia `LOGIN_PASSWORD` en `.env` y ejecuta `npm run db:reset-admin`.
 
 ### Despliegue con Docker
 
-Docker Compose lee la configuración privada desde `.env`; define `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `LOGIN_USERNAME` y `LOGIN_PASSWORD`. `DB_HOST` y `DB_PORT` se sustituyen dentro del contenedor web. Para una instalación nueva, define también `MYSQL_ROOT_PASSWORD`; si falta, Compose usa `DB_PASSWORD` como alternativa. No se copia `.env` ni `usuarios.json` a la imagen.
-
-Valida y construye sin mostrar la configuración resuelta:
+Docker Compose lee la configuración privada desde `.env` (no se copia a la imagen). Para una instalación nueva define también `MYSQL_ROOT_PASSWORD`. Los datos de MySQL viven en el volumen `tfg-frikicoments_db_data` y los archivos subidos en `./storage`.
 
 ```bash
 docker compose config --quiet
-docker compose build web
+docker compose up -d db
+docker compose run --rm --no-deps web npm run db:init   # solo la primera vez
+docker compose up -d --build web
 ```
 
-Los datos de MySQL viven en el volumen `tfg-frikicoments_db_data` y los archivos subidos en `./storage`. En una instalación nueva (volumen vacío), MySQL crea las tablas automáticamente a partir de `sql/schema.sql`. Para crear el administrador inicial, con MySQL ya activo:
-
-```bash
-docker compose run --rm --no-deps web npm run db:init
-docker compose up -d web
-```
-
-La imagen web contiene el código, así que tras cada cambio hay que reconstruirla. El despliegue es manual:
+El despliegue de cambios es manual:
 
 ```bash
 git pull
 docker compose up -d --build web
 ```
 
-La web solo escucha en `127.0.0.1:3001`; desde fuera únicamente se accede a través de Tailscale Funnel.
+La web solo escucha en `127.0.0.1:3001`; desde fuera únicamente se accede a través de Tailscale Funnel. Para comprobar que responde: `curl http://127.0.0.1:3001/api/health`.
 
-### Prueba de extremo a extremo
+### Tests
 
-1. Inicia sesión con una cuenta existente (el administrador inicial está configurado en `.env`).
-2. Abre «Invitar usuario» y crea una cuenta de prueba con una contraseña de al menos 8 caracteres.
-3. Cierra sesión, inicia con la cuenta de prueba y publica un comentario de prueba.
-4. Recarga la página: el comentario debe seguir apareciendo porque quedó guardado en MySQL.
+Los tests (`test/*.test.js`, con `node:test`) arrancan la aplicación contra una base vacía, aplican las migraciones desde cero y prueban login, permisos, recuperación, reseñas, biblioteca, chat privado y seguridad. IGDB se sustituye por juegos falsos, así que no necesitan internet.
 
-Para comprobar la conexión sin mostrar credenciales, usa `curl http://localhost:3000/api/health` en la Raspberry. En la aplicación desplegada, reinicia el proceso de Node con PM2 después de actualizar el código.
+**Borran la base que se les indique**: por eso exigen que `DB_NAME` contenga «test». En la Raspberry se ejecutan dentro de Docker contra la MySQL de pruebas:
+
+```bash
+scripts/tests-docker.sh
+```
 
 ## Ejecución en local
 
-Para instalar las dependencias:
-
 ```bash
 npm install
-```
-
-Para iniciar el servidor en desarrollo:
-
-```bash
 npm run dev
 ```
 
-La aplicación se puede abrir en:
+La aplicación se abre en `http://localhost:3000`.
 
-```text
-http://localhost:3000
-```
 
-## Despliegue
-
-El proyecto está alojado en una **Raspberry Pi**. Para poder acceder a él desde fuera de la red local se utiliza **Tailscale Funnel**, que publica la web por HTTPS con certificado válido sin abrir puertos en el router. La comunidad es privada: solo se puede entrar con una cuenta creada por invitación de un administrador.
-
-Actualmente se puede acceder a la aplicación mediante:
-
-"Aquí ira el autentico enlace que tenemos con Taiscale"
-
-La Raspberry Pi ejecuta la web y MySQL en contenedores Docker aislados, y Tailscale Funnel redirige esa dirección al contenedor web.
-
-## Objetivo final
-
-La finalidad del proyecto es crear una pequeña comunidad de videojuegos con el ambiente de los foros de antes, dando importancia a las conversaciones, las opiniones de los usuarios y la organización por videojuegos.
-
-Como próximas mejoras se plantean:
-
-- Guardado, borrado y límites de tamaño para archivos adjuntos.
-- Perfiles de usuario.
-- Creación de hilos y respuestas.
-- Administración y moderación de comentarios.
-- Moderación básica del contenido.
-- Convertir la aplicación en una PWA instalable, con manifest, iconos y service worker.

@@ -8,4 +8,5 @@ COPY . .
 RUN mkdir -p storage/usuarios && chown -R node:node storage
 USER node
 EXPOSE 3000
-CMD ["node", "server.js"]
+# Tope de memoria de Node: si algo se dispara, el proceso se reinicia en vez de llenar la RAM de la Pi.
+CMD ["node", "--max-old-space-size=256", "src/server.js"]

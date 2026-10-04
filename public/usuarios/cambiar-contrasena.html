@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cambiar contraseña - Frikicoments</title>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/styles.css?v=20261004-3">
+  <link rel="stylesheet" href="../css/styles.css">
 </head>
 <body>
   <div class="escena-login" aria-hidden="true"></div>
@@ -16,17 +16,12 @@
         <h1>Cambiar contraseña</h1>
         <p>Formulario para actualizar la contraseña de la cuenta.</p>
       </div>
-      <nav class="cabecera-nav" aria-label="Navegación principal">
-        <a class="btn primary" href="/">Portada</a>
-        <a class="btn primary" href="/usuarios/biblioteca.html">Mi biblioteca</a>
-        <a class="btn primary" href="/usuarios/archivos.html">Mis archivos</a>
-        <a class="btn primary" href="/usuarios/mi-cuenta.html">Mi cuenta</a>
-      </nav>
+      <nav class="cabecera-nav" aria-label="Navegación principal" data-menu="cuenta"></nav>
     </header>
 
     <section class="card">
       <h2 class="panel-title">Tu contraseña</h2>
-      <p class="ayuda-formulario">Al guardarla se cerrará la sesión y tendrás que entrar con la nueva.</p>
+      <p class="ayuda-formulario">Al guardarla se cerrarán tus sesiones en todos los dispositivos y tendrás que entrar con la nueva.</p>
       <form class="form-box formulario-cuenta" id="form-cambiar-contrasena">
         <label for="password-actual">Contraseña actual</label>
         <input id="password-actual" name="password-actual" type="password" placeholder="Escribe tu contraseña actual" autocomplete="current-password" required>
@@ -43,40 +38,6 @@
     </section>
 
   </main>
-  <script>
-    const formulario = document.querySelector('#form-cambiar-contrasena');
-    const mensaje = document.querySelector('#mensaje');
-
-    formulario.addEventListener('submit', async evento => {
-      evento.preventDefault();
-      mensaje.classList.remove('error');
-
-      if (formulario['password-nueva'].value !== formulario['confirmar-password-nueva'].value) {
-        mensaje.textContent = 'Las contraseñas nuevas no coinciden.';
-        mensaje.classList.add('error');
-        return;
-      }
-
-      try {
-        const respuesta = await fetch('/api/usuarios/password', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contrasenaActual: formulario['password-actual'].value,
-            contrasenaNueva: formulario['password-nueva'].value
-          })
-        });
-        const datos = await respuesta.json();
-        if (!respuesta.ok) throw new Error(datos.error || 'No se pudo cambiar la contraseña.');
-        mensaje.textContent = datos.mensaje;
-        window.setTimeout(() => {
-          window.location.href = 'iniciar-sesion.html';
-        }, 1200);
-      } catch (error) {
-        mensaje.textContent = error.message;
-        mensaje.classList.add('error');
-      }
-    });
-  </script>
+  <script type="module" src="/js/paginas/cambiar-contrasena.js"></script>
 </body>
 </html>

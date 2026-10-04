@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Resultados de Búsquedas</title>
+  <title>Resultados - Frikicoments</title>
   
   <!-- Fuente Pixel Art -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,8 +11,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   
   <!-- Estilos CSS externos -->
-  <link rel="stylesheet" href="/css/styles.css?v=20261004-3">
-  <link rel="stylesheet" href="/css/catalogo.css?v=20260831-1">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/catalogo.css">
 </head>
 <body>
   <div class="escena-login" aria-hidden="true"></div>
@@ -22,12 +22,7 @@
       <a class="logo-enlace logo-sitio" href="/" title="Ir a la portada">Frikicoments</a>
       <h1>Resultados para: <span id="query-title"></span></h1>
     </div>
-    <nav class="cabecera-nav" aria-label="Navegación principal">
-      <a class="btn primary" href="/">Portada</a>
-      <a class="btn primary" href="/usuarios/biblioteca.html">Mi biblioteca</a>
-      <a class="btn primary" href="/usuarios/archivos.html">Mis archivos</a>
-      <a class="btn primary" href="/usuarios/mi-cuenta.html">Mi cuenta</a>
-    </nav>
+    <nav class="cabecera-nav" aria-label="Navegación principal" data-menu=""></nav>
   </header>
 
   <main class="resultados-busqueda">
@@ -36,117 +31,12 @@
     </div>
 
     <div class="paginacion">
-      <button id="btn-prev" class="btn-pag">← Anterior</button>
+      <button id="btn-prev" class="btn-pag" type="button">&lt; Anterior</button>
       <span id="num-pagina">Página 1</span>
-      <button id="btn-next" class="btn-pag">Siguiente →</button>
+      <button id="btn-next" class="btn-pag" type="button">Siguiente &gt;</button>
     </div>
   </main>
 
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const query = params.get('q') || '';
-    let currentPage = parseInt(params.get('page')) || 1;
-
-    document.getElementById('query-title').textContent = query ? `"${query}"` : '(vacío)';
-    document.getElementById('num-pagina').textContent = `Página ${currentPage}`;
-
-    const btnPrev = document.getElementById('btn-prev');
-    const btnNext = document.getElementById('btn-next');
-    const grid = document.getElementById('grid-juegos');
-
-    btnPrev.disabled = currentPage <= 1;
-
-    btnPrev.addEventListener('click', () => {
-      if (currentPage > 1) {
-        window.location.href = `/resultados?q=${encodeURIComponent(query)}&page=${currentPage - 1}`;
-      }
-    });
-
-    btnNext.addEventListener('click', () => {
-      window.location.href = `/resultados?q=${encodeURIComponent(query)}&page=${currentPage + 1}`;
-    });
-
-    async function cargarResultados() {
-      if (!query) {
-        mostrarMensaje('No se especificó ningún término de búsqueda.');
-        btnPrev.disabled = true;
-        btnNext.disabled = true;
-        return;
-      }
-
-      try {
-        const res = await fetch(`/api/juegos/buscar?q=${encodeURIComponent(query)}&page=${currentPage}`);
-        const juegos = await res.json();
-
-        if (!Array.isArray(juegos) || juegos.length === 0) {
-          mostrarMensaje('No se encontraron más resultados.');
-          btnNext.disabled = true;
-          return;
-        }
-
-        if (juegos.length < 12) {
-          btnNext.disabled = true;
-        }
-
-        grid.replaceChildren();
-        juegos.forEach(juego => {
-          const imagenUrl = juego.background_image || 'https://via.placeholder.com/260x330?text=Sin+Caratula';
-          
-          const card = document.createElement('div');
-          card.className = 'card juego-card';
-          card.setAttribute('role', 'link');
-          card.tabIndex = 0;
-          const portada = document.createElement('div');
-          portada.className = 'card-cover';
-          const imagen = document.createElement('img');
-          imagen.src = imagenUrl;
-          imagen.alt = juego.name || 'Carátula del juego';
-          imagen.loading = 'lazy';
-          portada.append(imagen);
-
-          const cuerpo = document.createElement('div');
-          cuerpo.className = 'card-body';
-          const titulo = document.createElement('div');
-          titulo.className = 'card-title';
-          titulo.title = juego.name || '';
-          titulo.textContent = juego.name || 'Juego sin título';
-          const metadatos = document.createElement('div');
-          metadatos.className = 'card-meta';
-          const lanzamiento = document.createElement('span');
-          lanzamiento.textContent = juego.released || 'N/A';
-          const valoracion = document.createElement('span');
-          valoracion.className = 'rating';
-          valoracion.textContent = `★ ${juego.rating || 'N/D'}`;
-          metadatos.append(lanzamiento, valoracion);
-          cuerpo.append(titulo, metadatos);
-          card.append(portada, cuerpo);
-          const abrirFicha = () => {
-            window.location.href = `/juego.html?id=${encodeURIComponent(juego.id)}`;
-          };
-          card.addEventListener('click', abrirFicha);
-          card.addEventListener('keydown', evento => {
-            if (evento.key === 'Enter' || evento.key === ' ') {
-              evento.preventDefault();
-              abrirFicha();
-            }
-          });
-          grid.appendChild(card);
-        });
-
-      } catch (err) {
-        mostrarMensaje(`Error al cargar resultados: ${err.message}`, true);
-      }
-    }
-
-    function mostrarMensaje(texto, esError = false) {
-      const mensaje = document.createElement('p');
-      mensaje.className = 'status-msg';
-      if (esError) mensaje.style.color = 'var(--accent-red, #ef4444)';
-      mensaje.textContent = texto;
-      grid.replaceChildren(mensaje);
-    }
-
-    cargarResultados();
-  </script>
+  <script type="module" src="/js/paginas/resultados.js"></script>
 </body>
 </html>

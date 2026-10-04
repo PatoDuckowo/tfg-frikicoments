@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Juego - Frikicoments</title>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/styles.css?v=20261004-3">
+  <link rel="stylesheet" href="/css/styles.css?v=20261004-5">
   <link rel="stylesheet" href="/css/catalogo.css?v=20260927-2">
 </head>
 <body>
@@ -15,13 +15,7 @@
       <a class="logo-enlace logo-sitio" href="/" title="Ir a la portada">Frikicoments</a>
       <h1 id="titulo-juego">Cargando juego...</h1>
     </div>
-    <nav class="cabecera-nav" aria-label="Navegación principal">
-      <a class="btn secondary" href="javascript:history.back()">&lt; Volver</a>
-      <a class="btn primary" href="/">Portada</a>
-      <a class="btn primary" href="/usuarios/biblioteca.html">Mi biblioteca</a>
-      <a class="btn primary" href="/usuarios/archivos.html">Mis archivos</a>
-      <a class="btn primary" href="/usuarios/mi-cuenta.html">Mi cuenta</a>
-    </nav>
+    <nav class="cabecera-nav" aria-label="Navegación principal" data-menu="" data-volver></nav>
   </header>
 
   <main class="detalle-juego">
@@ -57,7 +51,7 @@
       <h2 class="panel-title">Comentarios de la comunidad</h2>
       <form id="form-comentario" class="form-box">
         <label for="contenido-comentario">Escribe tu comentario</label>
-        <textarea id="contenido-comentario" maxlength="5000" required></textarea>
+        <textarea id="contenido-comentario" name="contenido" maxlength="5000" required></textarea>
         <button class="btn primary" type="submit">Publicar comentario</button>
         <p id="mensaje-comentario" class="auth-message" role="status" aria-live="polite"></p>
       </form>
@@ -65,162 +59,6 @@
     </section>
   </main>
 
-  <script>
-    const juegoId = new URLSearchParams(window.location.search).get('id');
-    const titulo = document.querySelector('#titulo-juego');
-    const portada = document.querySelector('#portada-juego');
-    const meta = document.querySelector('#meta-juego');
-    const resumen = document.querySelector('#resumen-juego');
-    const mensajeJuego = document.querySelector('#mensaje-juego');
-    const estado = document.querySelector('#estado-juego');
-    const mensajeEstado = document.querySelector('#mensaje-estado');
-    const botonGuardar = document.querySelector('#guardar-juego');
-    const botonMeGusta = document.querySelector('#me-gusta-juego');
-    const mensajeMarcadores = document.querySelector('#mensaje-marcadores');
-    const formulario = document.querySelector('#form-comentario');
-    const contenido = document.querySelector('#contenido-comentario');
-    const mensajeComentario = document.querySelector('#mensaje-comentario');
-    const listaComentarios = document.querySelector('#lista-comentarios');
-
-    function mostrarError(elemento, texto) {
-      elemento.textContent = texto;
-      elemento.classList.add('error');
-    }
-
-    function colorDeUsuario(usuario) {
-      const colores = ['#8be9fd', '#50fa7b', '#f7d51d', '#ff79c6', '#ffb86c', '#bd93f9'];
-      let hash = 0;
-      for (const caracter of usuario) hash = (hash * 31 + caracter.charCodeAt(0)) >>> 0;
-      return colores[hash % colores.length];
-    }
-
-    function mostrarComentarios(comentarios) {
-      listaComentarios.replaceChildren();
-      if (comentarios.length === 0) {
-        const vacio = document.createElement('p');
-        vacio.className = 'status-msg';
-        vacio.textContent = 'Todavía no hay comentarios. Sé el primero.';
-        listaComentarios.append(vacio);
-        return;
-      }
-
-      comentarios.forEach(comentario => {
-        const articulo = document.createElement('article');
-        articulo.className = 'comment';
-        articulo.style.setProperty('--usuario-color', colorDeUsuario(comentario.usuario));
-        const autor = document.createElement('strong');
-        autor.textContent = comentario.usuario;
-        const texto = document.createElement('p');
-        texto.textContent = comentario.contenido;
-        articulo.append(autor, texto);
-        listaComentarios.append(articulo);
-      });
-    }
-
-    async function cargarDatos() {
-      if (!juegoId || !/^\d+$/.test(juegoId)) {
-        throw new Error('No se ha indicado un juego válido.');
-      }
-      const [respuestaJuego, respuestaEstado, respuestaMarcadores, respuestaComentarios] = await Promise.all([
-        fetch(`/api/juegos/${juegoId}`),
-        fetch(`/api/juegos/${juegoId}/estado`),
-        fetch(`/api/juegos/${juegoId}/marcadores`),
-        fetch(`/api/juegos/${juegoId}/comentarios`)
-      ]);
-      const juego = await respuestaJuego.json();
-      if (!respuestaJuego.ok) throw new Error(juego.error || 'No se pudo cargar el juego.');
-      const datosEstado = await respuestaEstado.json();
-      const marcadores = await respuestaMarcadores.json();
-      const comentarios = await respuestaComentarios.json();
-
-      titulo.textContent = juego.name;
-      document.title = `${juego.name} - Frikicoments`;
-      meta.textContent = `${juego.released} · ★ ${juego.rating}`;
-      resumen.textContent = juego.summary || 'IGDB no tiene un resumen disponible para este juego.';
-      if (juego.background_image) {
-        const imagen = document.createElement('img');
-        imagen.src = juego.background_image;
-        imagen.alt = `Carátula de ${juego.name}`;
-        portada.append(imagen);
-      } else {
-        portada.textContent = 'Sin carátula';
-      }
-      estado.value = datosEstado.estado || '';
-      actualizarMarcadores(marcadores);
-      mostrarComentarios(comentarios);
-    }
-
-    function actualizarMarcadores(marcadores) {
-      botonGuardar.textContent = marcadores.guardado ? 'Quitar de guardados' : 'Guardar juego';
-      botonMeGusta.textContent = marcadores.meGusta ? 'Quitar me gusta' : 'Me gusta';
-    }
-
-    async function cambiarMarcador(url, campo, activo) {
-      try {
-        const respuesta = await fetch(url, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ [campo]: !activo })
-        });
-        const datos = await respuesta.json();
-        if (!respuesta.ok) throw new Error(datos.error || 'No se pudo guardar el cambio.');
-        mensajeMarcadores.textContent = 'Guardado.';
-        const marcadores = await (await fetch(`/api/juegos/${juegoId}/marcadores`)).json();
-        actualizarMarcadores(marcadores);
-      } catch (error) {
-        mostrarError(mensajeMarcadores, error.message);
-      }
-    }
-
-    botonGuardar.addEventListener('click', async () => {
-      const marcadores = await (await fetch(`/api/juegos/${juegoId}/marcadores`)).json();
-      cambiarMarcador(`/api/juegos/${juegoId}/guardado`, 'guardado', marcadores.guardado);
-    });
-    botonMeGusta.addEventListener('click', async () => {
-      const marcadores = await (await fetch(`/api/juegos/${juegoId}/marcadores`)).json();
-      cambiarMarcador(`/api/juegos/${juegoId}/me-gusta`, 'meGusta', marcadores.meGusta);
-    });
-
-    estado.addEventListener('change', async () => {
-      mensajeEstado.classList.remove('error');
-      try {
-        const respuesta = await fetch(`/api/juegos/${juegoId}/estado`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ estado: estado.value })
-        });
-        const datos = await respuesta.json();
-        if (!respuesta.ok) throw new Error(datos.error || 'No se pudo guardar el estado.');
-        mensajeEstado.textContent = 'Estado guardado.';
-      } catch (error) {
-        mostrarError(mensajeEstado, error.message);
-      }
-    });
-
-    formulario.addEventListener('submit', async evento => {
-      evento.preventDefault();
-      mensajeComentario.classList.remove('error');
-      try {
-        const respuesta = await fetch(`/api/juegos/${juegoId}/comentarios`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contenido: contenido.value })
-        });
-        const datos = await respuesta.json();
-        if (!respuesta.ok) throw new Error(datos.error || 'No se pudo publicar el comentario.');
-        contenido.value = '';
-        mensajeComentario.textContent = 'Comentario publicado.';
-        const respuestaComentarios = await fetch(`/api/juegos/${juegoId}/comentarios`);
-        mostrarComentarios(await respuestaComentarios.json());
-      } catch (error) {
-        mostrarError(mensajeComentario, error.message);
-      }
-    });
-
-    cargarDatos().catch(error => {
-      mensajeJuego.textContent = error.message;
-      resumen.textContent = '';
-    });
-  </script>
+  <script type="module" src="/js/paginas/juego.js"></script>
 </body>
 </html>

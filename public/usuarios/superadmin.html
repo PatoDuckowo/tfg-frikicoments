@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Superadministración - Frikicoments</title>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/styles.css?v=20261004-3">
+  <link rel="stylesheet" href="../css/styles.css">
 </head>
 <body>
   <div class="escena-login" aria-hidden="true"></div>
@@ -16,12 +16,7 @@
         <h1>Superadministración</h1>
         <p>Gestiona nombres, contraseñas y espacio de las cuentas.</p>
       </div>
-      <nav class="cabecera-nav" aria-label="Navegación principal">
-        <a class="btn primary" href="/">Portada</a>
-        <a class="btn primary" href="/usuarios/biblioteca.html">Mi biblioteca</a>
-        <a class="btn primary" href="/usuarios/archivos.html">Mis archivos</a>
-        <a class="btn primary" href="/usuarios/mi-cuenta.html">Mi cuenta</a>
-      </nav>
+      <nav class="cabecera-nav" aria-label="Navegación principal" data-menu=""></nav>
     </header>
 
     <section class="card">
@@ -49,181 +44,15 @@
         <p id="mensaje-chat" class="auth-message" role="status" aria-live="polite"></p>
       </section>
     </div>
+
+    <section class="card seccion-chats-privados">
+      <h2 class="panel-title">Chats privados</h2>
+      <p class="admin-ayuda">Los mensajes son privados: aquí solo se ve cuánto ocupa cada conversación. Al borrarla, desaparece para las dos personas.</p>
+      <p class="admin-ayuda" id="resumen-conversaciones"></p>
+      <div class="conversaciones-admin" id="lista-conversaciones"></div>
+      <p id="mensaje-conversaciones" class="auth-message" role="status" aria-live="polite"></p>
+    </section>
   </main>
-  <script>
-    const lista = document.querySelector('#lista-usuarios');
-    const mensaje = document.querySelector('#mensaje');
-    const formularioAviso = document.querySelector('#form-mensaje-lateral');
-    const mensajeAviso = document.querySelector('#mensaje-aviso');
-    const vaciarChat = document.querySelector('#vaciar-chat');
-    const mensajeChat = document.querySelector('#mensaje-chat');
-
-    // Crea un campo de la tarjeta: etiqueta arriba y, debajo, la entrada con su botón al lado.
-    function crearCampo(usuario, tipo, textoEtiqueta, entrada, textoBoton, claseBoton) {
-      const formulario = document.createElement('form');
-      formulario.className = 'campo-admin';
-      formulario.dataset.id = usuario.id;
-      formulario.dataset.tipo = tipo;
-
-      const etiqueta = document.createElement('label');
-      etiqueta.htmlFor = entrada.id;
-      etiqueta.textContent = textoEtiqueta;
-
-      const boton = document.createElement('button');
-      boton.className = `btn ${claseBoton}`;
-      boton.type = 'submit';
-      boton.textContent = textoBoton;
-
-      const fila = document.createElement('div');
-      fila.className = 'campo-admin-fila';
-      fila.append(entrada, boton);
-      formulario.append(etiqueta, fila);
-      return formulario;
-    }
-
-    function mostrarUsuarios(usuarios) {
-      lista.replaceChildren();
-      usuarios.forEach(usuario => {
-        const tarjeta = document.createElement('article');
-        tarjeta.className = 'cuenta-admin';
-
-        const cabecera = document.createElement('div');
-        cabecera.className = 'cuenta-admin-cabecera';
-        const nombre = document.createElement('strong');
-        nombre.className = 'cuenta-admin-nombre';
-        nombre.textContent = usuario.nombre_usuario;
-        const rol = document.createElement('span');
-        rol.className = `rol-cuenta ${usuario.rol === 'admin' ? 'admin' : ''}`;
-        rol.textContent = usuario.rol;
-        cabecera.append(nombre, rol);
-
-        const entradaNombre = document.createElement('input');
-        entradaNombre.id = `nombre-${usuario.id}`;
-        entradaNombre.name = 'nombre_usuario';
-        entradaNombre.type = 'text';
-        entradaNombre.minLength = 3;
-        entradaNombre.value = usuario.nombre_usuario;
-        entradaNombre.required = true;
-
-        const entradaContrasena = document.createElement('input');
-        entradaContrasena.id = `contrasena-${usuario.id}`;
-        entradaContrasena.name = 'contrasena';
-        entradaContrasena.type = 'password';
-        entradaContrasena.minLength = 8;
-        entradaContrasena.autocomplete = 'new-password';
-        entradaContrasena.placeholder = 'Mínimo 8 caracteres';
-        entradaContrasena.required = true;
-
-        const entradaCuota = document.createElement('input');
-        entradaCuota.id = `cuota-${usuario.id}`;
-        entradaCuota.name = 'megabytes';
-        entradaCuota.type = 'number';
-        entradaCuota.min = '500';
-        entradaCuota.max = '10240';
-        entradaCuota.step = '1';
-        entradaCuota.value = Math.round(Number(usuario.cuota_archivos_bytes) / 1024 / 1024);
-        entradaCuota.required = true;
-
-        const aviso = document.createElement('p');
-        aviso.className = 'auth-message mensaje-cuenta';
-        aviso.setAttribute('role', 'status');
-        aviso.setAttribute('aria-live', 'polite');
-
-        tarjeta.append(
-          cabecera,
-          crearCampo(usuario, 'nombre', 'Nombre de usuario', entradaNombre, 'Guardar', 'secondary'),
-          crearCampo(usuario, 'contrasena', 'Nueva contraseña', entradaContrasena, 'Restablecer', 'primary'),
-          crearCampo(usuario, 'cuota', 'Espacio máximo (MB)', entradaCuota, 'Guardar', 'secondary'),
-          aviso
-        );
-        lista.append(tarjeta);
-      });
-    }
-
-    async function cargarUsuarios() {
-      const respuesta = await fetch('/api/superadmin/usuarios');
-      if (!respuesta.ok) throw new Error('No se pudieron cargar las cuentas.');
-      mostrarUsuarios(await respuesta.json());
-    }
-
-    lista.addEventListener('submit', async evento => {
-      evento.preventDefault();
-      const formulario = evento.target;
-      const boton = formulario.querySelector('button');
-      // El aviso se muestra en la propia tarjeta, junto al cambio que se ha hecho.
-      const aviso = formulario.closest('.cuenta-admin').querySelector('.mensaje-cuenta');
-      boton.disabled = true;
-      aviso.textContent = 'Guardando...';
-      aviso.classList.remove('error');
-
-      try {
-        let endpoint, cuerpo, msgExito;
-
-        if (formulario.dataset.tipo === 'cuota') {
-          endpoint = 'cuota';
-          cuerpo = { megabytes: Number(formulario.megabytes.value) };
-          msgExito = 'Espacio actualizado.';
-        } else if (formulario.dataset.tipo === 'nombre') {
-          endpoint = 'nombre';
-          cuerpo = { nombre_usuario: formulario.nombre_usuario.value };
-          msgExito = 'Nombre actualizado.';
-        } else {
-          endpoint = 'contrasena';
-          cuerpo = { contrasena: formulario.contrasena.value };
-          msgExito = 'Contraseña actualizada.';
-        }
-
-        const respuesta = await fetch(`/api/superadmin/usuarios/${formulario.dataset.id}/${endpoint}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(cuerpo)
-        });
-        const datos = await respuesta.json();
-        if (!respuesta.ok) throw new Error(datos.error || 'No se pudo aplicar el cambio.');
-
-        if (formulario.dataset.tipo === 'contrasena') formulario.reset();
-        if (formulario.dataset.tipo === 'nombre') {
-          formulario.closest('.cuenta-admin').querySelector('.cuenta-admin-nombre').textContent = cuerpo.nombre_usuario.trim();
-        }
-        aviso.textContent = msgExito;
-      } catch (error) {
-        aviso.textContent = error.message;
-        aviso.classList.add('error');
-      } finally {
-        boton.disabled = false;
-      }
-    });
-
-    formularioAviso.addEventListener('submit', async evento => {
-      evento.preventDefault();
-      mensajeAviso.classList.remove('error');
-      try {
-        const respuesta = await fetch('/api/superadmin/mensaje-lateral', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contenido: formularioAviso['contenido-mensaje-lateral'].value })
-        });
-        const datos = await respuesta.json();
-        if (!respuesta.ok) throw new Error(datos.error || 'No se pudo publicar el aviso.');
-        formularioAviso.reset();
-        mensajeAviso.textContent = datos.mensaje;
-      } catch (error) {
-        mensajeAviso.textContent = error.message;
-        mensajeAviso.classList.add('error');
-      }
-    });
-
-    vaciarChat.addEventListener('click', async () => {
-      if (!window.confirm('¿Quieres borrar todos los mensajes del chat?')) return;
-      const respuesta = await fetch('/api/superadmin/chat', { method: 'DELETE' });
-      const datos = await respuesta.json();
-      mensajeChat.textContent = datos.mensaje || datos.error;
-      if (!respuesta.ok) mensajeChat.classList.add('error');
-    });
-
-    cargarUsuarios().catch(() => {
-      window.location.href = '/usuarios/iniciar-sesion.html';
-    });
-  </script>
+  <script type="module" src="/js/paginas/superadmin.js"></script>
 </body>
 </html>

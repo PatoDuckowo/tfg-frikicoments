@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Invitar usuario - Frikicoments</title>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/styles.css?v=20261004-3">
+  <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
   <div class="escena-login" aria-hidden="true"></div>
@@ -16,12 +16,7 @@
         <h1>Invitar usuario</h1>
         <p>Solo una persona con sesión iniciada puede crear una cuenta. No hay registro público.</p>
       </div>
-      <nav class="cabecera-nav" aria-label="Navegación principal">
-        <a class="btn primary" href="/">Portada</a>
-        <a class="btn primary" href="/usuarios/biblioteca.html">Mi biblioteca</a>
-        <a class="btn primary" href="/usuarios/archivos.html">Mis archivos</a>
-        <a class="btn primary" href="/usuarios/mi-cuenta.html">Mi cuenta</a>
-      </nav>
+      <nav class="cabecera-nav" aria-label="Navegación principal" data-menu=""></nav>
     </header>
 
     <section class="card">
@@ -29,7 +24,7 @@
       <p class="ayuda-formulario">Crea la cuenta y comparte la contraseña inicial en privado con la persona invitada.</p>
       <form class="form-box formulario-cuenta" id="form-crear-usuario">
         <label for="usuario">Nombre de usuario</label>
-        <input id="usuario" name="usuario" type="text" minlength="3" placeholder="Mínimo 3 caracteres" autocomplete="off" required>
+        <input id="usuario" name="usuario" type="text" minlength="3" maxlength="30" placeholder="De 3 a 30: letras, números, - _ ." autocomplete="off" required>
 
         <label for="contrasena">Contraseña inicial para la persona invitada</label>
         <input id="contrasena" name="contrasena" type="password" minlength="8" placeholder="Mínimo 8 caracteres" autocomplete="new-password" required>
@@ -43,41 +38,7 @@
     </section>
 
   </main>
-  <script>
-    const formulario = document.querySelector('#form-crear-usuario');
-    const mensaje = document.querySelector('#mensaje');
-
-    formulario.addEventListener('submit', async (evento) => {
-      evento.preventDefault();
-      mensaje.classList.remove('error');
-
-      if (formulario.contrasena.value !== formulario['confirmar-contrasena'].value) {
-        mensaje.textContent = 'Las contraseñas no coinciden.';
-        mensaje.classList.add('error');
-        return;
-      }
-
-      try {
-        const respuesta = await fetch('/api/usuarios/registro', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify({
-            usuario: formulario.usuario.value,
-            contrasena: formulario.contrasena.value
-          })
-        });
-        const datos = await respuesta.json();
-        if (!respuesta.ok) throw new Error(datos.error || 'No se pudo crear el usuario.');
-
-        formulario.reset();
-        mensaje.textContent = 'Cuenta creada en MySQL. Comparte las credenciales iniciales solo con la persona invitada.';
-      } catch (error) {
-        mensaje.textContent = error.message;
-        mensaje.classList.add('error');
-      }
-    });
-  </script>
+  <script type="module" src="/js/paginas/crear-usuario.js"></script>
 </body>
 </html>
 Buscar Videojuegos

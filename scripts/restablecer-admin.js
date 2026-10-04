@@ -1,7 +1,8 @@
 require('dotenv').config({ override: true });
+// override: la contraseña de .env manda aunque haya otra en el entorno.
 
 const bcrypt = require('bcryptjs');
-const { pool } = require('../db');
+const { pool } = require('../src/db/pool');
 
 async function restablecerAdministrador() {
   const usuario = (process.env.LOGIN_USERNAME || '').trim();
