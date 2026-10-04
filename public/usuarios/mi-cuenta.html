@@ -5,13 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mi cuenta - Frikicoments</title>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="stylesheet" href="../css/styles.css?v=20261004-3">
 </head>
 <body>
+  <div class="escena-login" aria-hidden="true"></div>
   <main class="container">
-    <header>
-      <h1>Mi cuenta</h1>
-      <p>Datos y opciones del usuario conectado.</p>
+    <header class="cabecera-pagina">
+      <div class="cabecera-pagina-textos">
+        <a class="logo-enlace logo-sitio" href="/" title="Ir a la portada">Frikicoments</a>
+        <h1>Mi cuenta</h1>
+        <p>Datos y opciones del usuario conectado.</p>
+      </div>
+      <nav class="cabecera-nav" aria-label="Navegación principal">
+        <a class="btn primary" href="/">Portada</a>
+        <a class="btn primary" href="/usuarios/biblioteca.html">Mi biblioteca</a>
+        <a class="btn primary" href="/usuarios/archivos.html">Mis archivos</a>
+        <a class="btn primary" href="/usuarios/mi-cuenta.html" aria-current="page">Mi cuenta</a>
+      </nav>
     </header>
 
     <section class="card">
@@ -22,12 +32,12 @@
 
     <section class="card" style="margin-top: 24px;">
       <h2 class="panel-title">Sesión</h2>
-      <p><a class="btn primary" href="archivos.html">Mis archivos</a></p>
-      <p><a class="btn primary" href="biblioteca.html">Mi biblioteca</a></p>
-      <p><a class="btn primary" href="cambiar-contrasena.html">Cambiar contraseña</a></p>
-      <form action="/api/usuarios/logout" method="post">
-        <button class="btn secondary" type="submit">Cerrar sesión</button>
-      </form>
+      <div class="acciones-cuenta">
+        <a class="btn primary" href="cambiar-contrasena.html">Cambiar contraseña</a>
+        <form action="/api/usuarios/logout" method="post">
+          <button class="btn secondary" type="submit">Cerrar sesión</button>
+        </form>
+      </div>
     </section>
 
     <section class="card" id="panel-superadmin" style="margin-top: 24px; display: none;">
@@ -36,7 +46,6 @@
       <a class="btn primary" href="superadmin.html">Gestionar usuarios</a>
     </section>
 
-    <p><a class="btn-volver" href="/">Volver a la home</a></p>
   </main>
   <script>
     fetch('/api/usuarios/me')

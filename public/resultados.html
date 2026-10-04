@@ -11,17 +11,26 @@
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   
   <!-- Estilos CSS externos -->
-  <link rel="stylesheet" href="/css/styles.css?v=20260831-1">
+  <link rel="stylesheet" href="/css/styles.css?v=20261004-3">
   <link rel="stylesheet" href="/css/catalogo.css?v=20260831-1">
 </head>
 <body>
+  <div class="escena-login" aria-hidden="true"></div>
 
-  <header>
-    <h1>Resultados para: <span id="query-title"></span></h1>
-    <a href="/" class="btn-volver" style="color: #d12237 !important;">← Volver al inicio </a>
+  <header class="cabecera-pagina">
+    <div class="cabecera-pagina-textos">
+      <a class="logo-enlace logo-sitio" href="/" title="Ir a la portada">Frikicoments</a>
+      <h1>Resultados para: <span id="query-title"></span></h1>
+    </div>
+    <nav class="cabecera-nav" aria-label="Navegación principal">
+      <a class="btn primary" href="/">Portada</a>
+      <a class="btn primary" href="/usuarios/biblioteca.html">Mi biblioteca</a>
+      <a class="btn primary" href="/usuarios/archivos.html">Mis archivos</a>
+      <a class="btn primary" href="/usuarios/mi-cuenta.html">Mi cuenta</a>
+    </nav>
   </header>
 
-  <main>
+  <main class="resultados-busqueda">
     <div id="grid-juegos" class="grid">
       <p class="status-msg">Buscando videojuegos...</p>
     </div>

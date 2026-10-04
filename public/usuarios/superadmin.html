@@ -5,39 +5,50 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Superadministración - Frikicoments</title>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="stylesheet" href="../css/styles.css?v=20261004-3">
 </head>
 <body>
+  <div class="escena-login" aria-hidden="true"></div>
   <main class="container">
-    <header>
-      <h1>Superadministración</h1>
-      <p>Gestiona nombres, contraseñas y espacio de las cuentas.</p>
+    <header class="cabecera-pagina">
+      <div class="cabecera-pagina-textos">
+        <a class="logo-enlace logo-sitio" href="/" title="Ir a la portada">Frikicoments</a>
+        <h1>Superadministración</h1>
+        <p>Gestiona nombres, contraseñas y espacio de las cuentas.</p>
+      </div>
+      <nav class="cabecera-nav" aria-label="Navegación principal">
+        <a class="btn primary" href="/">Portada</a>
+        <a class="btn primary" href="/usuarios/biblioteca.html">Mi biblioteca</a>
+        <a class="btn primary" href="/usuarios/archivos.html">Mis archivos</a>
+        <a class="btn primary" href="/usuarios/mi-cuenta.html">Mi cuenta</a>
+      </nav>
     </header>
 
     <section class="card">
       <h2 class="panel-title">Cuentas de usuarios</h2>
       <p id="mensaje" class="auth-message" role="status" aria-live="polite"></p>
-      <div id="lista-usuarios"></div>
+      <div class="admin-cuentas" id="lista-usuarios"></div>
     </section>
 
-    <section class="card" style="margin-top: 24px;">
-      <h2 class="panel-title">Mensaje lateral</h2>
-      <p>El aviso aparecerá en la home durante 24 horas.</p>
-      <form class="form-box" id="form-mensaje-lateral">
-        <label for="contenido-mensaje-lateral">Mensaje</label>
-        <textarea id="contenido-mensaje-lateral" maxlength="1000" required></textarea>
-        <button class="btn primary" type="submit">Publicar aviso</button>
-      </form>
-      <p id="mensaje-aviso" class="auth-message" role="status" aria-live="polite"></p>
-    </section>
+    <div class="admin-secciones">
+      <section class="card">
+        <h2 class="panel-title">Mensaje lateral</h2>
+        <p class="admin-ayuda">El aviso aparecerá en la home durante 24 horas.</p>
+        <form class="form-box" id="form-mensaje-lateral">
+          <label for="contenido-mensaje-lateral">Mensaje</label>
+          <textarea id="contenido-mensaje-lateral" maxlength="1000" required></textarea>
+          <button class="btn primary" type="submit">Publicar aviso</button>
+        </form>
+        <p id="mensaje-aviso" class="auth-message" role="status" aria-live="polite"></p>
+      </section>
 
-    <section class="card" style="margin-top: 24px;">
-      <h2 class="panel-title">Chat</h2>
-      <button class="btn danger" id="vaciar-chat" type="button">Vaciar chat</button>
-      <p id="mensaje-chat" class="auth-message" role="status" aria-live="polite"></p>
-    </section>
-
-    <p><a class="btn-volver" href="mi-cuenta.html">Volver a mi cuenta</a></p>
+      <section class="card">
+        <h2 class="panel-title">Chat</h2>
+        <p class="admin-ayuda">Borra todos los mensajes del chat de la portada.</p>
+        <button class="btn danger" id="vaciar-chat" type="button">Vaciar chat</button>
+        <p id="mensaje-chat" class="auth-message" role="status" aria-live="polite"></p>
+      </section>
+    </div>
   </main>
   <script>
     const lista = document.querySelector('#lista-usuarios');
@@ -47,25 +58,45 @@
     const vaciarChat = document.querySelector('#vaciar-chat');
     const mensajeChat = document.querySelector('#mensaje-chat');
 
+    // Crea un campo de la tarjeta: etiqueta arriba y, debajo, la entrada con su botón al lado.
+    function crearCampo(usuario, tipo, textoEtiqueta, entrada, textoBoton, claseBoton) {
+      const formulario = document.createElement('form');
+      formulario.className = 'campo-admin';
+      formulario.dataset.id = usuario.id;
+      formulario.dataset.tipo = tipo;
+
+      const etiqueta = document.createElement('label');
+      etiqueta.htmlFor = entrada.id;
+      etiqueta.textContent = textoEtiqueta;
+
+      const boton = document.createElement('button');
+      boton.className = `btn ${claseBoton}`;
+      boton.type = 'submit';
+      boton.textContent = textoBoton;
+
+      const fila = document.createElement('div');
+      fila.className = 'campo-admin-fila';
+      fila.append(entrada, boton);
+      formulario.append(etiqueta, fila);
+      return formulario;
+    }
+
     function mostrarUsuarios(usuarios) {
       lista.replaceChildren();
       usuarios.forEach(usuario => {
         const tarjeta = document.createElement('article');
-        tarjeta.className = 'card';
-        tarjeta.style.marginTop = '16px';
-        const datos = document.createElement('p');
-        const nombre = document.createElement('strong');
-        nombre.textContent = usuario.nombre_usuario;
-        datos.append(nombre, document.createTextNode(` (${usuario.rol})`));
+        tarjeta.className = 'cuenta-admin';
 
-        // Nuevo formulario: Cambiar Nombre
-        const formularioNombre = document.createElement('form');
-        formularioNombre.className = 'form-box';
-        formularioNombre.dataset.id = usuario.id;
-        formularioNombre.dataset.tipo = 'nombre';
-        const etiquetaNombre = document.createElement('label');
-        etiquetaNombre.htmlFor = `nombre-${usuario.id}`;
-        etiquetaNombre.textContent = 'Nombre de usuario';
+        const cabecera = document.createElement('div');
+        cabecera.className = 'cuenta-admin-cabecera';
+        const nombre = document.createElement('strong');
+        nombre.className = 'cuenta-admin-nombre';
+        nombre.textContent = usuario.nombre_usuario;
+        const rol = document.createElement('span');
+        rol.className = `rol-cuenta ${usuario.rol === 'admin' ? 'admin' : ''}`;
+        rol.textContent = usuario.rol;
+        cabecera.append(nombre, rol);
+
         const entradaNombre = document.createElement('input');
         entradaNombre.id = `nombre-${usuario.id}`;
         entradaNombre.name = 'nombre_usuario';
@@ -73,41 +104,16 @@
         entradaNombre.minLength = 3;
         entradaNombre.value = usuario.nombre_usuario;
         entradaNombre.required = true;
-        const botonNombre = document.createElement('button');
-        botonNombre.className = 'btn secondary';
-        botonNombre.type = 'submit';
-        botonNombre.textContent = 'Guardar nombre';
-        formularioNombre.append(etiquetaNombre, entradaNombre, botonNombre);
 
-        // Formulario: Contraseña
-        const formularioContrasena = document.createElement('form');
-        formularioContrasena.className = 'form-box';
-        formularioContrasena.dataset.id = usuario.id;
-        formularioContrasena.dataset.tipo = 'contrasena';
-        const etiquetaContrasena = document.createElement('label');
-        etiquetaContrasena.htmlFor = `contrasena-${usuario.id}`;
-        etiquetaContrasena.textContent = 'Nueva contraseña';
         const entradaContrasena = document.createElement('input');
         entradaContrasena.id = `contrasena-${usuario.id}`;
         entradaContrasena.name = 'contrasena';
         entradaContrasena.type = 'password';
         entradaContrasena.minLength = 8;
         entradaContrasena.autocomplete = 'new-password';
+        entradaContrasena.placeholder = 'Mínimo 8 caracteres';
         entradaContrasena.required = true;
-        const botonContrasena = document.createElement('button');
-        botonContrasena.className = 'btn primary';
-        botonContrasena.type = 'submit';
-        botonContrasena.textContent = 'Restablecer contraseña';
-        formularioContrasena.append(etiquetaContrasena, entradaContrasena, botonContrasena);
 
-        // Formulario: Cuota
-        const formularioCuota = document.createElement('form');
-        formularioCuota.className = 'form-box';
-        formularioCuota.dataset.id = usuario.id;
-        formularioCuota.dataset.tipo = 'cuota';
-        const etiquetaCuota = document.createElement('label');
-        etiquetaCuota.htmlFor = `cuota-${usuario.id}`;
-        etiquetaCuota.textContent = 'Espacio máximo (MB)';
         const entradaCuota = document.createElement('input');
         entradaCuota.id = `cuota-${usuario.id}`;
         entradaCuota.name = 'megabytes';
@@ -117,13 +123,19 @@
         entradaCuota.step = '1';
         entradaCuota.value = Math.round(Number(usuario.cuota_archivos_bytes) / 1024 / 1024);
         entradaCuota.required = true;
-        const botonCuota = document.createElement('button');
-        botonCuota.className = 'btn secondary';
-        botonCuota.type = 'submit';
-        botonCuota.textContent = 'Guardar espacio';
-        formularioCuota.append(etiquetaCuota, entradaCuota, botonCuota);
-        
-        tarjeta.append(datos, formularioNombre, formularioContrasena, formularioCuota);
+
+        const aviso = document.createElement('p');
+        aviso.className = 'auth-message mensaje-cuenta';
+        aviso.setAttribute('role', 'status');
+        aviso.setAttribute('aria-live', 'polite');
+
+        tarjeta.append(
+          cabecera,
+          crearCampo(usuario, 'nombre', 'Nombre de usuario', entradaNombre, 'Guardar', 'secondary'),
+          crearCampo(usuario, 'contrasena', 'Nueva contraseña', entradaContrasena, 'Restablecer', 'primary'),
+          crearCampo(usuario, 'cuota', 'Espacio máximo (MB)', entradaCuota, 'Guardar', 'secondary'),
+          aviso
+        );
         lista.append(tarjeta);
       });
     }
@@ -138,9 +150,11 @@
       evento.preventDefault();
       const formulario = evento.target;
       const boton = formulario.querySelector('button');
+      // El aviso se muestra en la propia tarjeta, junto al cambio que se ha hecho.
+      const aviso = formulario.closest('.cuenta-admin').querySelector('.mensaje-cuenta');
       boton.disabled = true;
-      mensaje.textContent = 'Guardando...';
-      mensaje.classList.remove('error');
+      aviso.textContent = 'Guardando...';
+      aviso.classList.remove('error');
 
       try {
         let endpoint, cuerpo, msgExito;
@@ -166,13 +180,15 @@
         });
         const datos = await respuesta.json();
         if (!respuesta.ok) throw new Error(datos.error || 'No se pudo aplicar el cambio.');
-        
+
         if (formulario.dataset.tipo === 'contrasena') formulario.reset();
-        if (formulario.dataset.tipo === 'nombre') cargarUsuarios();
-        mensaje.textContent = msgExito;
+        if (formulario.dataset.tipo === 'nombre') {
+          formulario.closest('.cuenta-admin').querySelector('.cuenta-admin-nombre').textContent = cuerpo.nombre_usuario.trim();
+        }
+        aviso.textContent = msgExito;
       } catch (error) {
-        mensaje.textContent = error.message;
-        mensaje.classList.add('error');
+        aviso.textContent = error.message;
+        aviso.classList.add('error');
       } finally {
         boton.disabled = false;
       }

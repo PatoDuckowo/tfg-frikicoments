@@ -1,9 +1,18 @@
 /* Grid de Videojuegos */
+/* Las tarjetas se reparten por todo el ancho disponible */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 260px));
-  justify-content: center;
+  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
   gap: 24px;
+}
+
+.grid > .card {
+  width: auto;
+}
+
+.resultados-busqueda {
+  width: var(--ancho-pagina);
+  margin: 0 auto 60px;
 }
 
 /* Tarjetas */
@@ -25,7 +34,7 @@
 
 .card-cover {
   width: 100%;
-  height: 330px;
+  aspect-ratio: 3 / 4;
   background-color: #000000;
   overflow: hidden;
   display: flex;
@@ -103,7 +112,7 @@
 }
 
 .detalle-juego {
-  width: min(1080px, 92%);
+  width: var(--ancho-pagina);
   margin: 30px auto 60px;
   display: grid;
   gap: 24px;
@@ -164,9 +173,8 @@
 
 @media (max-width: 680px) {
   .grid {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 18px;
-    padding: 0 4%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
   }
 
   .grid > .card {
@@ -190,7 +198,7 @@
 }
 
 .biblioteca {
-  width: min(1080px, 92%);
+  width: var(--ancho-pagina);
   margin: 30px auto 60px;
 }
 
@@ -199,4 +207,78 @@
   gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 20px;
+}
+/* Biblioteca: filtros y orden personalizado */
+.biblioteca-barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-bottom: 20px;
+}
+
+.biblioteca-barra .biblioteca-tabs {
+  margin-bottom: 0;
+}
+
+.biblioteca-tabs .btn {
+  background: var(--accent-green);
+  color: #000000;
+}
+
+.biblioteca-tabs .btn[aria-pressed="true"] {
+  background: var(--accent-blue);
+  color: #ffffff;
+}
+
+.biblioteca-ayuda {
+  margin: 0;
+  color: var(--muted);
+  text-shadow: 2px 2px 0 #000000;
+  font-size: 0.6rem;
+  line-height: 1.7;
+}
+
+.biblioteca .juego-card {
+  cursor: grab;
+}
+
+.biblioteca .juego-card.arrastrando {
+  opacity: 0.45;
+}
+
+/* Línea que indica dónde se soltará la carátula */
+.biblioteca .juego-card.soltar-antes {
+  box-shadow: -8px 0 0 #79d98a, var(--pixel-shadow);
+}
+
+.biblioteca .juego-card.soltar-despues {
+  box-shadow: 8px 0 0 #79d98a, var(--pixel-shadow);
+}
+
+.controles-orden {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.mover-juego {
+  flex: 1;
+  padding: 6px 0;
+  font-size: 0.7rem;
+  background: var(--panel-soft);
+  color: var(--text);
+  border-width: 3px;
+  box-shadow: 2px 2px 0 #000000;
+}
+
+.mover-juego:hover:not(:disabled) {
+  background: #2a4170;
+}
+
+.mover-juego:disabled {
+  opacity: 0.3;
+  cursor: default;
 }

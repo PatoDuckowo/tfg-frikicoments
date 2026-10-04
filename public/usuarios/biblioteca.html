@@ -5,20 +5,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mi biblioteca - Frikicoments</title>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/styles.css?v=20260927-2">
+  <link rel="stylesheet" href="/css/styles.css?v=20261004-3">
   <link rel="stylesheet" href="/css/catalogo.css?v=20260927-2">
 </head>
 <body>
-  <header>
-    <h1>Mi biblioteca</h1>
-    <a href="/" class="btn-volver">Volver a la home</a>
+  <div class="escena-login" aria-hidden="true"></div>
+  <header class="cabecera-pagina">
+    <div class="cabecera-pagina-textos">
+      <a class="logo-enlace logo-sitio" href="/" title="Ir a la portada">Frikicoments</a>
+      <h1>Mi biblioteca</h1>
+      <p>Los juegos que has guardado, te gustan o estás jugando.</p>
+    </div>
+    <nav class="cabecera-nav" aria-label="Navegación principal">
+      <a class="btn primary" href="/">Portada</a>
+      <a class="btn primary" href="/usuarios/biblioteca.html" aria-current="page">Mi biblioteca</a>
+      <a class="btn primary" href="/usuarios/archivos.html">Mis archivos</a>
+      <a class="btn primary" href="/usuarios/mi-cuenta.html">Mi cuenta</a>
+    </nav>
   </header>
   <main class="biblioteca">
-    <nav class="biblioteca-tabs" aria-label="Filtros de biblioteca">
-      <button class="btn primary" data-filtro="todos">Todos</button>
-      <button class="btn secondary" data-filtro="guardado">Guardados</button>
-      <button class="btn secondary" data-filtro="me_gusta">Me gusta</button>
-    </nav>
+    <div class="biblioteca-barra">
+      <nav class="biblioteca-tabs" aria-label="Filtros de biblioteca">
+        <button class="btn" type="button" data-filtro="todos" aria-pressed="true">Todos</button>
+        <button class="btn" type="button" data-filtro="guardado" aria-pressed="false">Guardados</button>
+        <button class="btn" type="button" data-filtro="me_gusta" aria-pressed="false">Me gusta</button>
+      </nav>
+      <p class="biblioteca-ayuda">Arrastra las carátulas o usa &lt; &gt; para ordenarlas a tu gusto.</p>
+    </div>
     <p id="mensaje" class="auth-message" role="status" aria-live="polite"></p>
     <div id="lista" class="grid"></div>
   </main>
@@ -27,10 +40,71 @@
     const mensaje = document.querySelector('#mensaje');
     let biblioteca = [];
     let filtro = 'todos';
+    let arrastrado = null;
+    let temporizadorGuardado = null;
 
-    function pintar() {
+    function elementosVisibles() {
+      return biblioteca.filter(item => filtro === 'todos' || Boolean(item[filtro]));
+    }
+
+    // Mueve un juego delante o detrás de otro. Se trabaja sobre la lista completa,
+    // así el orden se mantiene aunque haya un filtro activo.
+    function mover(juegoId, referenciaId, despues) {
+      if (juegoId === referenciaId) return;
+      const origen = biblioteca.findIndex(item => item.juego_id === juegoId);
+      const [elemento] = biblioteca.splice(origen, 1);
+      let destino = biblioteca.findIndex(item => item.juego_id === referenciaId);
+      if (despues) destino += 1;
+      biblioteca.splice(destino, 0, elemento);
+      pintar(juegoId);
+      programarGuardado();
+    }
+
+    function programarGuardado() {
+      clearTimeout(temporizadorGuardado);
+      mensaje.classList.remove('error');
+      mensaje.textContent = 'Guardando orden...';
+      temporizadorGuardado = setTimeout(guardarOrden, 600);
+    }
+
+    async function guardarOrden() {
+      try {
+        const respuesta = await fetch('/api/mi-biblioteca/orden', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ juegos: biblioteca.map(item => item.juego_id) })
+        });
+        const datos = await respuesta.json();
+        if (!respuesta.ok) throw new Error(datos.error || 'No se pudo guardar el orden.');
+        mensaje.textContent = 'Orden guardado.';
+      } catch (error) {
+        mensaje.textContent = error.message;
+        mensaje.classList.add('error');
+      }
+    }
+
+    function crearBotonMover(texto, etiqueta, desactivado, alPulsar) {
+      const boton = document.createElement('button');
+      boton.type = 'button';
+      boton.className = 'btn mover-juego';
+      boton.textContent = texto;
+      boton.setAttribute('aria-label', etiqueta);
+      boton.disabled = desactivado;
+      boton.addEventListener('click', evento => {
+        evento.stopPropagation(); // que no abra la ficha del juego
+        alPulsar();
+      });
+      return boton;
+    }
+
+    function limpiarMarcas() {
+      lista.querySelectorAll('.soltar-antes, .soltar-despues')
+        .forEach(tarjeta => tarjeta.classList.remove('soltar-antes', 'soltar-despues'));
+    }
+
+    function pintar(enfocarId) {
       lista.replaceChildren();
-      const elementos = biblioteca.filter(item => filtro === 'todos' || Boolean(item[filtro]));
+      const elementos = elementosVisibles();
       if (!elementos.length) {
         const vacio = document.createElement('p');
         vacio.className = 'status-msg';
@@ -38,16 +112,46 @@
         lista.append(vacio);
         return;
       }
-      elementos.forEach(item => {
+      elementos.forEach((item, indice) => {
         const juego = item.juego;
         const tarjeta = document.createElement('article');
         tarjeta.className = 'card juego-card';
+        tarjeta.draggable = true;
+        tarjeta.dataset.juegoId = item.juego_id;
         tarjeta.addEventListener('click', () => { window.location.href = `/juego.html?id=${juego.id}`; });
+
+        tarjeta.addEventListener('dragstart', evento => {
+          arrastrado = item.juego_id;
+          evento.dataTransfer.effectAllowed = 'move';
+          evento.dataTransfer.setData('text/plain', String(item.juego_id));
+          tarjeta.classList.add('arrastrando');
+        });
+        tarjeta.addEventListener('dragend', () => {
+          arrastrado = null;
+          tarjeta.classList.remove('arrastrando');
+          limpiarMarcas();
+        });
+        tarjeta.addEventListener('dragover', evento => {
+          if (arrastrado === null || arrastrado === item.juego_id) return;
+          evento.preventDefault();
+          const caja = tarjeta.getBoundingClientRect();
+          const despues = evento.clientX > caja.left + caja.width / 2;
+          limpiarMarcas();
+          tarjeta.classList.add(despues ? 'soltar-despues' : 'soltar-antes');
+        });
+        tarjeta.addEventListener('drop', evento => {
+          evento.preventDefault();
+          if (arrastrado === null) return;
+          const despues = tarjeta.classList.contains('soltar-despues');
+          mover(arrastrado, item.juego_id, despues);
+        });
+
         const portada = document.createElement('div');
         portada.className = 'card-cover';
         const imagen = document.createElement('img');
         imagen.src = juego.background_image || 'https://via.placeholder.com/260x330?text=Sin+Caratula';
         imagen.alt = juego.name;
+        imagen.draggable = false;
         portada.append(imagen);
         const cuerpo = document.createElement('div');
         cuerpo.className = 'card-body';
@@ -57,15 +161,34 @@
         const meta = document.createElement('div');
         meta.className = 'card-meta';
         meta.textContent = item.estado ? `Estado: ${item.estado}` : (item.me_gusta ? 'Me gusta' : 'Guardado');
-        cuerpo.append(nombre, meta);
+
+        const anterior = elementos[indice - 1];
+        const siguiente = elementos[indice + 1];
+        const controles = document.createElement('div');
+        controles.className = 'controles-orden';
+        controles.append(
+          crearBotonMover('<', `Mover ${juego.name} antes`, !anterior,
+            () => mover(item.juego_id, anterior.juego_id, false)),
+          crearBotonMover('>', `Mover ${juego.name} después`, !siguiente,
+            () => mover(item.juego_id, siguiente.juego_id, true))
+        );
+
+        cuerpo.append(nombre, meta, controles);
         tarjeta.append(portada, cuerpo);
         lista.append(tarjeta);
       });
+
+      // Tras mover con los botones, el foco sigue en la tarjeta movida.
+      if (enfocarId !== undefined) {
+        lista.querySelector(`[data-juego-id="${enfocarId}"] .mover-juego:not(:disabled)`)?.focus();
+      }
     }
 
     document.querySelectorAll('[data-filtro]').forEach(boton => {
       boton.addEventListener('click', () => {
         filtro = boton.dataset.filtro;
+        document.querySelectorAll('[data-filtro]')
+          .forEach(otro => otro.setAttribute('aria-pressed', String(otro === boton)));
         pintar();
       });
     });

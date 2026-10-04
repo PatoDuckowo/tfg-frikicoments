@@ -5,18 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mis archivos - Frikicoments</title>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/styles.css?v=20260927-2">
+  <link rel="stylesheet" href="/css/styles.css?v=20261004-3">
 </head>
 <body>
+  <div class="escena-login" aria-hidden="true"></div>
   <main class="container">
-    <header>
-      <h1>Mis archivos</h1>
-      <p>Tu espacio privado de Frikicoments.</p>
+    <header class="cabecera-pagina">
+      <div class="cabecera-pagina-textos">
+        <a class="logo-enlace logo-sitio" href="/" title="Ir a la portada">Frikicoments</a>
+        <h1>Mis archivos</h1>
+        <p>Tu espacio privado de Frikicoments.</p>
+      </div>
+      <nav class="cabecera-nav" aria-label="Navegación principal">
+        <a class="btn primary" href="/">Portada</a>
+        <a class="btn primary" href="/usuarios/biblioteca.html">Mi biblioteca</a>
+        <a class="btn primary" href="/usuarios/archivos.html" aria-current="page">Mis archivos</a>
+        <a class="btn primary" href="/usuarios/mi-cuenta.html">Mi cuenta</a>
+      </nav>
     </header>
 
     <section class="explorador-toolbar" aria-label="Herramientas de archivos">
-      <a class="btn-volver" href="/">Inicio</a>
-      <a class="btn-volver" href="/usuarios/mi-cuenta.html">Mi cuenta</a>
       <label class="btn primary selector-archivo" for="archivo-input">Subir archivo</label>
       <input id="archivo-input" type="file" hidden>
     </section>

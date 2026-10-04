@@ -1,0 +1,253 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+  <!-- Escena pixel art de la pantalla de inicio de sesión: laboratorio nocturno con un gato durmiendo. -->
+  <style>
+    .led { animation: parpadeo 1.6s steps(1) infinite; }
+    .led.lento { animation-duration: 2.7s; }
+    .led.rapido { animation-duration: 0.9s; }
+    .cursor { animation: parpadeo 1s steps(1) infinite; }
+    .pez { animation: nadar 9s ease-in-out infinite alternate; }
+    .pez.dos { animation-duration: 12s; animation-delay: -4s; }
+    .pez.tres { animation-duration: 7s; animation-delay: -2s; }
+    .burbuja { animation: subir 4s linear infinite; }
+    .burbuja.b2 { animation-delay: -1.5s; }
+    .burbuja.b3 { animation-delay: -3s; }
+    .medusa { animation: flotar 5s ease-in-out infinite; }
+    .gato-cuerpo { transform-box: fill-box; transform-origin: bottom; animation: respirar 3.2s ease-in-out infinite; }
+    .zeta { animation: dormir 4s ease-out infinite; opacity: 0; }
+    .zeta.z2 { animation-delay: -2s; }
+    @keyframes parpadeo { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+    @keyframes nadar { from { transform: translateX(0); } to { transform: translateX(26px); } }
+    @keyframes subir { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-38px); opacity: 0; } }
+    @keyframes flotar { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+    @keyframes respirar { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.06); } }
+    @keyframes dormir { 0% { transform: translate(0, 0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(8px, -16px); opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; } .zeta { opacity: 0.8; } }
+  </style>
+
+  <defs>
+    <pattern id="celosia" width="8" height="5" patternUnits="userSpaceOnUse">
+      <path d="M0 4.5 L4 0.5 L8 4.5" stroke="#3f5f92" fill="none"/>
+    </pattern>
+    <radialGradient id="vineta" cx="50%" cy="50%" r="75%">
+      <stop offset="60%" stop-color="#000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0.45"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Pared y tuberías -->
+  <rect width="320" height="180" fill="#22365e"/>
+  <rect width="320" height="12" fill="#1a2847"/>
+  <rect x="40" width="1" height="180" fill="#1d2f52"/>
+  <rect x="110" width="1" height="180" fill="#1d2f52"/>
+  <rect x="180" width="1" height="180" fill="#1d2f52"/>
+  <rect x="250" width="1" height="180" fill="#1d2f52"/>
+  <rect y="5" width="320" height="3" fill="#2e4778"/>
+  <rect y="5" width="320" height="1" fill="#3f5f92"/>
+  <rect x="150" y="5" width="3" height="40" fill="#2e4778"/>
+  <rect x="148" y="16" width="7" height="3" fill="#1a2847"/>
+  <rect x="196" y="0" width="3" height="34" fill="#2e4778"/>
+  <rect x="194" y="26" width="7" height="3" fill="#1a2847"/>
+
+  <!-- Estantería superior -->
+  <rect y="60" width="320" height="4" fill="#34507f"/>
+  <rect y="60" width="320" height="1" fill="#4a6ba0"/>
+  <rect y="64" width="320" height="2" fill="#15213d"/>
+  <rect y="65" width="320" height="5" fill="url(#celosia)"/>
+  <rect x="18" y="64" width="4" height="110" fill="#1b2a4a"/>
+  <rect x="120" y="64" width="4" height="110" fill="#1b2a4a"/>
+  <rect x="205" y="64" width="4" height="110" fill="#1b2a4a"/>
+  <rect x="300" y="64" width="4" height="110" fill="#1b2a4a"/>
+
+  <!-- Servidor -->
+  <rect x="12" y="14" width="34" height="46" fill="#15213d"/>
+  <rect x="15" y="18" width="28" height="6" fill="#1f3157"/>
+  <rect x="15" y="27" width="28" height="6" fill="#1f3157"/>
+  <rect x="15" y="36" width="28" height="6" fill="#1f3157"/>
+  <rect x="15" y="45" width="28" height="11" fill="#1f3157"/>
+  <rect x="18" y="20" width="2" height="2" fill="#79d98a" class="led"/>
+  <rect x="22" y="20" width="2" height="2" fill="#79d98a" class="led lento"/>
+  <rect x="18" y="29" width="2" height="2" fill="#79d98a" class="led rapido"/>
+  <rect x="38" y="20" width="2" height="2" fill="#e8834a" class="led lento"/>
+  <rect x="38" y="38" width="2" height="2" fill="#e8834a" class="led"/>
+  <rect x="18" y="48" width="12" height="1" fill="#34507f"/>
+  <rect x="18" y="51" width="12" height="1" fill="#34507f"/>
+
+  <!-- Bote con medusa -->
+  <rect x="58" y="30" width="26" height="4" fill="#15213d"/>
+  <rect x="56" y="34" width="30" height="26" fill="#2f4a7a"/>
+  <rect x="58" y="36" width="26" height="22" fill="#35588c"/>
+  <rect x="58" y="36" width="2" height="22" fill="#4a6ba0"/>
+  <g class="medusa">
+    <rect x="66" y="41" width="10" height="2" fill="#6b8fc2"/>
+    <rect x="65" y="43" width="12" height="3" fill="#6b8fc2"/>
+    <rect x="66" y="46" width="1" height="5" fill="#5878a8"/>
+    <rect x="70" y="46" width="1" height="6" fill="#5878a8"/>
+    <rect x="74" y="46" width="1" height="4" fill="#5878a8"/>
+  </g>
+
+  <!-- Aparato con onda -->
+  <rect x="94" y="40" width="58" height="20" fill="#15213d"/>
+  <rect x="98" y="44" width="34" height="12" fill="#0f1a33"/>
+  <path d="M100 53 h4 v-5 h4 v5 h4 v-5 h4 v5 h4 v-5 h4 v5 h4" stroke="#79d98a" fill="none"/>
+  <rect x="136" y="44" width="4" height="4" fill="#34507f"/>
+  <rect x="142" y="44" width="4" height="4" fill="#34507f"/>
+  <rect x="136" y="51" width="10" height="2" fill="#e8834a" class="led rapido"/>
+  <rect x="96" y="35" width="6" height="5" fill="#1b2a4a"/>
+  <rect x="98" y="37" width="2" height="1" fill="#79d98a" class="led"/>
+
+  <!-- Cajas pequeñas -->
+  <rect x="160" y="48" width="18" height="12" fill="#1b2a4a"/>
+  <rect x="163" y="51" width="3" height="1" fill="#79d98a"/>
+  <rect x="168" y="51" width="3" height="1" fill="#79d98a" class="led lento"/>
+  <rect x="212" y="30" width="16" height="30" fill="#1b2a4a"/>
+  <rect x="215" y="34" width="10" height="4" fill="#15213d"/>
+  <rect x="219" y="35" width="2" height="2" fill="#e8834a" class="led"/>
+  <rect x="215" y="42" width="10" height="1" fill="#34507f"/>
+  <rect x="215" y="45" width="10" height="1" fill="#34507f"/>
+
+  <!-- Monitor con texto -->
+  <rect x="236" y="16" width="76" height="44" fill="#15213d"/>
+  <rect x="241" y="21" width="66" height="34" fill="#0f1a33"/>
+  <rect x="245" y="25" width="22" height="1" fill="#79d98a"/>
+  <rect x="270" y="25" width="10" height="1" fill="#79d98a"/>
+  <rect x="245" y="29" width="34" height="1" fill="#79d98a"/>
+  <rect x="245" y="33" width="14" height="1" fill="#79d98a"/>
+  <rect x="262" y="33" width="20" height="1" fill="#79d98a"/>
+  <rect x="245" y="37" width="28" height="1" fill="#79d98a"/>
+  <rect x="245" y="41" width="8" height="1" fill="#79d98a"/>
+  <rect x="245" y="45" width="40" height="1" fill="#79d98a"/>
+  <rect x="245" y="49" width="16" height="1" fill="#79d98a"/>
+  <rect x="263" y="48" width="3" height="3" fill="#79d98a" class="cursor"/>
+
+  <!-- Cables colgando -->
+  <g stroke="#0f1a33" stroke-width="1.5" fill="none" shape-rendering="auto">
+    <path d="M30 66 C30 110 70 112 72 66"/>
+    <path d="M100 66 C102 96 130 100 138 66"/>
+    <path d="M160 66 C150 120 190 124 196 66"/>
+    <path d="M222 66 C226 92 246 96 250 66"/>
+  </g>
+  <rect x="190" y="70" width="6" height="22" fill="#1b2a4a"/>
+  <rect x="192" y="74" width="2" height="2" fill="#e8834a" class="led lento"/>
+  <rect x="192" y="80" width="2" height="2" fill="#e8834a" class="led"/>
+
+  <!-- Acuario -->
+  <rect x="0" y="116" width="64" height="54" fill="#0f1a33"/>
+  <rect x="2" y="122" width="58" height="44" fill="#4aa3df"/>
+  <rect x="2" y="122" width="58" height="2" fill="#8fd3ff"/>
+  <rect x="2" y="160" width="58" height="6" fill="#3b86bd"/>
+  <g class="pez">
+    <rect x="8" y="132" width="7" height="3" fill="#c6ecff"/>
+    <rect x="15" y="131" width="2" height="5" fill="#c6ecff"/>
+    <rect x="9" y="133" width="1" height="1" fill="#1a2847"/>
+  </g>
+  <g class="pez dos">
+    <rect x="14" y="146" width="6" height="3" fill="#c6ecff"/>
+    <rect x="20" y="145" width="2" height="5" fill="#c6ecff"/>
+    <rect x="15" y="147" width="1" height="1" fill="#1a2847"/>
+  </g>
+  <g class="pez tres">
+    <rect x="6" y="153" width="5" height="2" fill="#a8dcff"/>
+    <rect x="11" y="152" width="2" height="4" fill="#a8dcff"/>
+  </g>
+  <rect x="44" y="158" width="2" height="2" fill="#c6ecff" class="burbuja"/>
+  <rect x="50" y="156" width="1" height="1" fill="#c6ecff" class="burbuja b2"/>
+  <rect x="40" y="157" width="1" height="1" fill="#c6ecff" class="burbuja b3"/>
+
+  <!-- Contador rojo -->
+  <rect x="26" y="148" width="74" height="24" fill="#15213d"/>
+  <rect x="29" y="151" width="68" height="18" fill="#0a1226"/>
+  <g fill="none" stroke="#e04f4f">
+    <rect x="33.5" y="154.5" width="6" height="11"/>
+    <rect x="44.5" y="154.5" width="6" height="11"/>
+    <rect x="55.5" y="154.5" width="6" height="11"/>
+    <rect x="66.5" y="154.5" width="6" height="11"/>
+    <rect x="77.5" y="154.5" width="6" height="11"/>
+    <rect x="88.5" y="154.5" width="6" height="11" class="cursor"/>
+  </g>
+
+  <!-- Osciloscopio y amplificador -->
+  <rect x="104" y="124" width="56" height="24" fill="#15213d"/>
+  <rect x="108" y="128" width="26" height="16" fill="#0f1a33"/>
+  <path d="M110 137 q3 -6 6 0 t6 0 t6 0 t4 0" stroke="#79d98a" fill="none" shape-rendering="auto"/>
+  <rect x="138" y="129" width="18" height="2" fill="#34507f"/>
+  <rect x="138" y="134" width="18" height="2" fill="#34507f"/>
+  <rect x="138" y="139" width="18" height="2" fill="#34507f"/>
+  <rect x="140" y="139" width="4" height="2" fill="#79d98a"/>
+  <rect x="148" y="150" width="70" height="24" fill="#1b2a4a"/>
+  <rect x="152" y="154" width="24" height="7" fill="#0f1a33"/>
+  <rect x="154" y="155" width="2" height="5" fill="#e8834a" class="led"/>
+  <rect x="158" y="155" width="2" height="5" fill="#e8834a" class="led lento"/>
+  <rect x="162" y="155" width="2" height="5" fill="#e8834a" class="led rapido"/>
+  <rect x="166" y="155" width="2" height="5" fill="#e8834a"/>
+  <rect x="170" y="155" width="2" height="5" fill="#e8834a" class="led"/>
+  <circle cx="157" cy="168" r="3" fill="#0f1a33"/>
+  <circle cx="166" cy="168" r="3" fill="#0f1a33"/>
+  <circle cx="175" cy="168" r="3" fill="#0f1a33"/>
+  <rect x="182" y="155" width="30" height="1" fill="#34507f"/>
+  <rect x="182" y="159" width="30" height="1" fill="#34507f"/>
+  <rect x="182" y="163" width="30" height="1" fill="#34507f"/>
+
+  <!-- Monitor CRT con el gato (desplazado hacia abajo para quedar visible bajo el login) -->
+  <g transform="translate(0 6)">
+  <rect x="226" y="112" width="74" height="54" fill="#2a4170"/>
+  <rect x="226" y="112" width="74" height="2" fill="#3f5f92"/>
+  <rect x="232" y="118" width="56" height="40" fill="#15213d"/>
+  <rect x="235" y="121" width="50" height="34" fill="#0f1a33"/>
+  <g fill="#79d98a">
+    <rect x="262" y="134" width="12" height="6"/>
+    <rect x="260" y="131" width="2" height="3"/>
+    <rect x="265" y="131" width="2" height="3"/>
+    <rect x="260" y="134" width="7" height="4"/>
+    <rect x="263" y="140" width="2" height="3"/>
+    <rect x="270" y="140" width="2" height="3"/>
+    <rect x="274" y="132" width="2" height="3"/>
+    <rect x="276" y="130" width="2" height="2"/>
+  </g>
+  <rect x="261" y="135" width="1" height="1" fill="#0f1a33"/>
+  <rect x="244" y="138" width="6" height="2" fill="#e8834a"/>
+  <rect x="242" y="137" width="2" height="4" fill="#e8834a"/>
+  <rect x="234" y="160" width="16" height="4" fill="#15213d"/>
+  <rect x="262" y="160" width="4" height="4" fill="#79d98a" class="led lento"/>
+  <rect x="270" y="160" width="4" height="4" fill="#15213d"/>
+  <rect x="276" y="160" width="4" height="4" fill="#15213d"/>
+
+  <!-- Gato durmiendo sobre el monitor -->
+  <g>
+    <rect x="224" y="108" width="5" height="26" fill="#6c7d95"/>
+    <rect x="222" y="130" width="5" height="10" fill="#6c7d95"/>
+    <g class="gato-cuerpo">
+      <rect x="230" y="98" width="56" height="14" fill="#7a8ba3"/>
+      <rect x="234" y="95" width="48" height="3" fill="#7a8ba3"/>
+      <rect x="240" y="92" width="34" height="3" fill="#7a8ba3"/>
+      <rect x="248" y="90" width="18" height="2" fill="#7a8ba3"/>
+      <rect x="228" y="102" width="4" height="10" fill="#7a8ba3"/>
+      <rect x="250" y="91" width="14" height="1" fill="#93a5bc"/>
+      <rect x="242" y="93" width="30" height="1" fill="#93a5bc"/>
+      <rect x="236" y="96" width="44" height="1" fill="#93a5bc"/>
+      <rect x="230" y="110" width="56" height="2" fill="#6c7d95"/>
+    </g>
+    <rect x="280" y="96" width="22" height="16" fill="#7a8ba3"/>
+    <rect x="282" y="91" width="5" height="5" fill="#7a8ba3"/>
+    <rect x="295" y="91" width="5" height="5" fill="#7a8ba3"/>
+    <rect x="283" y="93" width="2" height="2" fill="#c98a96"/>
+    <rect x="296" y="93" width="2" height="2" fill="#c98a96"/>
+    <rect x="284" y="102" width="5" height="1" fill="#3b4a60"/>
+    <rect x="294" y="102" width="5" height="1" fill="#3b4a60"/>
+    <rect x="290" y="106" width="2" height="1" fill="#c98a96"/>
+    <rect x="276" y="110" width="10" height="2" fill="#93a5bc"/>
+    <path class="zeta" d="M304 86 h4 l-4 4 h4" stroke="#c6d3e6" fill="none"/>
+    <path class="zeta z2" d="M306 82 h3 l-3 3 h3" stroke="#c6d3e6" fill="none"/>
+  </g>
+  </g>
+
+  <!-- Altavoz -->
+  <rect x="304" y="118" width="16" height="54" fill="#15213d"/>
+  <circle cx="312" cy="134" r="5" fill="#2a4170"/>
+  <circle cx="312" cy="134" r="2" fill="#0f1a33"/>
+  <circle cx="312" cy="156" r="3" fill="#2a4170"/>
+
+  <!-- Suelo y viñeta -->
+  <rect y="172" width="320" height="8" fill="#121d36"/>
+  <rect y="172" width="320" height="1" fill="#1d2f52"/>
+  <rect width="320" height="180" fill="url(#vineta)" shape-rendering="auto"/>
+</svg>

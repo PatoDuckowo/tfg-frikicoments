@@ -4,13 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Invitar usuario - Frikicoments</title>
-  <link rel="stylesheet" href="/css/styles.css?v=20260927-2">
+  <link rel="stylesheet" href="/css/styles.css?v=20261004-3">
 </head>
 <body>
+  <div class="escena-login" aria-hidden="true"></div>
   <main class="container">
-    <header>
-      <h1>Invitar usuario</h1>
-      <p>Solo una persona con sesión iniciada puede crear una cuenta. No hay registro público.</p>
+    <header class="cabecera-pagina">
+      <div class="cabecera-pagina-textos">
+        <a class="logo-enlace logo-sitio" href="/" title="Ir a la portada">Frikicoments</a>
+        <h1>Invitar usuario</h1>
+        <p>Solo una persona con sesión iniciada puede crear una cuenta. No hay registro público.</p>
+      </div>
+      <nav class="cabecera-nav" aria-label="Navegación principal">
+        <a class="btn primary" href="/">Portada</a>
+        <a class="btn primary" href="/usuarios/biblioteca.html">Mi biblioteca</a>
+        <a class="btn primary" href="/usuarios/archivos.html">Mis archivos</a>
+        <a class="btn primary" href="/usuarios/mi-cuenta.html">Mi cuenta</a>
+      </nav>
     </header>
 
     <section class="card">
@@ -29,7 +39,6 @@
       </form>
     </section>
 
-    <p><a class="btn-volver" href="../inicio.html">Volver al inicio</a></p>
   </main>
   <script>
     const formulario = document.querySelector('#form-crear-usuario');

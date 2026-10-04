@@ -110,3 +110,12 @@ CREATE TABLE IF NOT EXISTS archivos_usuario (
   CONSTRAINT fk_archivos_usuario_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
     ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS biblioteca_orden (
+  usuario_id INT UNSIGNED NOT NULL,
+  juego_id INT UNSIGNED NOT NULL,
+  posicion INT UNSIGNED NOT NULL,
+  PRIMARY KEY (usuario_id, juego_id),
+  CONSTRAINT fk_biblioteca_orden_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+    ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

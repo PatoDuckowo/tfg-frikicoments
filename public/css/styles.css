@@ -10,6 +10,14 @@
   --text: #eceff4;
   --muted: #d8dee9;
   --pixel-shadow: 4px 4px 0px #000000;
+  /* Ancho de las páginas: casi toda la pantalla, con margen lateral */
+  --ancho-pagina: min(2200px, calc(100% - 48px));
+}
+
+@media (max-width: 800px) {
+  :root {
+    --ancho-pagina: calc(100% - 24px);
+  }
 }
 
 * {
@@ -32,7 +40,7 @@ body {
 }
 
 .container {
-  width: min(1080px, 92%);
+  width: var(--ancho-pagina);
   margin: 0 auto;
   padding: 30px 0 60px;
 }
@@ -697,7 +705,7 @@ textarea {
   }
 
   .container {
-    width: min(94%, 1080px);
+    width: var(--ancho-pagina);
   }
 
   .mensaje-lateral {
@@ -768,7 +776,7 @@ textarea {
   }
 
   .container {
-    width: 94%;
+    width: var(--ancho-pagina);
     padding-top: 18px;
   }
 
@@ -793,4 +801,531 @@ textarea {
     flex: 1 1 130px;
     text-align: center;
   }
+}
+/* Pantalla de inicio de sesión a pantalla completa (portada sin sesión).
+   Todo se mide en px/rem para que el zoom del navegador agrande la página entera:
+   la escena tiene un tamaño mínimo de 1920 px, así llena la pantalla al 100 %
+   y crece con la tarjeta al hacer zoom. */
+.login-terminal {
+  display: none;
+}
+
+body.comprobando .container {
+  visibility: hidden;
+}
+
+body.sin-sesion {
+  overflow-x: hidden;
+}
+
+.escena-login {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-color: #1a2847;
+  background-image: url('/img/escena-login.svg');
+  background-repeat: no-repeat;
+  background-position: center bottom;
+  /* 177.78vh = ancho de una escena 16:9 que cubre todo el alto */
+  background-size: max(100vw, 177.78vh, 1920px) auto;
+}
+
+body.sin-sesion .container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 32px 48px;
+  display: flex;
+  align-items: flex-start;
+}
+
+body.sin-sesion header {
+  width: 100%;
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  column-gap: 64px;
+  align-content: center;
+  align-items: center;
+  padding: 32px 56px;
+  background-color: rgba(10, 18, 38, 0.86);
+  background-image: repeating-linear-gradient(0deg, rgba(121, 217, 138, 0.05) 0 1px, transparent 1px 4px);
+  border: 4px solid #0a1226;
+  box-shadow: 0 0 0 4px #34507f, 10px 10px 0 #000000;
+}
+
+body.sin-sesion header > h1,
+body.sin-sesion header > p,
+body.sin-sesion .login-terminal {
+  grid-column: 1;
+}
+
+body.sin-sesion header h1 {
+  font-size: 3.5rem;
+  text-shadow: 4px 4px 0 #000000;
+  overflow-wrap: anywhere;
+}
+
+body.sin-sesion header > p {
+  margin-top: 18px;
+  color: #c6d3e6;
+  font-size: 1rem;
+  line-height: 1.9;
+}
+
+body.sin-sesion .login-terminal {
+  display: block;
+  margin-top: 24px;
+  color: #79d98a;
+  font-size: 0.85rem;
+  line-height: 1.9;
+}
+
+body.sin-sesion .login-terminal p {
+  margin: 0;
+  color: inherit;
+  font-size: inherit;
+}
+
+.cursor-terminal {
+  animation: parpadeo-cursor 1s steps(1) infinite;
+}
+
+@keyframes parpadeo-cursor {
+  50% { opacity: 0; }
+}
+
+body.sin-sesion .account-menu {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  display: block;
+  margin: 0;
+}
+
+body.sin-sesion .header-login-form {
+  grid-template-columns: 1fr;
+  gap: 18px;
+  padding: 26px 36px;
+  background: rgba(21, 33, 61, 0.92);
+  border: 4px solid #000000;
+  box-shadow: inset 0 0 0 2px #2a4170, 6px 6px 0 #000000;
+}
+
+body.sin-sesion .header-login-form label {
+  gap: 8px;
+  color: #c6d3e6;
+  font-size: 0.85rem;
+}
+
+body.sin-sesion .header-login-form input {
+  padding: 15px 14px;
+  font-size: 1rem;
+  background: #0a1226;
+}
+
+body.sin-sesion .header-login-form input:focus {
+  border-color: #79d98a;
+  background: #0f1a33;
+}
+
+body.sin-sesion .header-login-form .btn {
+  width: 100%;
+  padding: 15px 14px;
+  font-size: 1rem;
+}
+
+body.sin-sesion .header-login-form .auth-message {
+  grid-column: auto;
+  margin: 0;
+}
+
+/* El título se reduce por tramos para no meterse bajo el formulario
+   (también cuando el zoom estrecha la ventana). */
+@media (max-width: 1519px) {
+  body.sin-sesion header h1 {
+    font-size: 2.5rem;
+  }
+}
+
+@media (max-width: 1199px) {
+  body.sin-sesion header {
+    column-gap: 40px;
+    padding: 28px 36px;
+  }
+
+  body.sin-sesion header h1 {
+    font-size: 1.7rem;
+  }
+
+  body.sin-sesion header > p {
+    font-size: 0.8rem;
+  }
+
+  body.sin-sesion .login-terminal {
+    font-size: 0.7rem;
+  }
+}
+
+/* Pantallas estrechas (o mucho zoom): una sola columna. */
+@media (max-width: 900px) {
+  body.sin-sesion .container {
+    padding: 24px 12px;
+  }
+
+  body.sin-sesion header {
+    grid-template-columns: 1fr;
+    row-gap: 24px;
+    padding: 24px;
+  }
+
+  body.sin-sesion header h1 {
+    font-size: 2rem;
+  }
+
+  body.sin-sesion .account-menu {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  body.sin-sesion .header-login-form {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  body.sin-sesion header h1 {
+    font-size: 1.5rem;
+  }
+
+  body.sin-sesion header > p,
+  body.sin-sesion .header-login-form label {
+    font-size: 0.7rem;
+  }
+
+  body.sin-sesion .login-terminal {
+    font-size: 0.6rem;
+  }
+
+  body.sin-sesion .header-login-form input,
+  body.sin-sesion .header-login-form .btn {
+    font-size: 0.8rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor-terminal {
+    animation: none;
+  }
+}
+
+/* Portada con sesión: la misma escena de fondo, oscurecida para leer bien,
+   y tres columnas (chat | contenido | lateral). */
+body:not(.sin-sesion) .escena-login::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 14, 30, 0.62);
+}
+
+/* Todo lo que va después de la escena queda por encima de ella. */
+.escena-login ~ * {
+  position: relative;
+  z-index: 1;
+}
+
+.portada-centro {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+  align-content: start;
+}
+
+.ultimos-comentarios .panel-title {
+  text-shadow: 2px 2px 0 #000000;
+}
+
+@media (min-width: 801px) {
+  #contenido-principal .mensaje-lateral {
+    position: sticky;
+    top: 16px;
+    left: auto;
+    bottom: auto;
+    width: auto;
+    padding: 16px;
+  }
+
+  /* La lista de mensajes se desplaza; el formulario siempre queda visible. */
+  #contenido-principal .chat-mensajes {
+    min-height: 240px;
+    max-height: 55vh;
+  }
+
+  #contenido-principal:not([hidden]) {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+
+  #contenido-principal .mensaje-lateral {
+    grid-row: 1 / span 2;
+  }
+
+  .portada-lateral {
+    grid-column: 2;
+  }
+}
+
+@media (min-width: 1400px) {
+  #contenido-principal:not([hidden]) {
+    grid-template-columns: 300px minmax(0, 1fr) 340px;
+    gap: 24px;
+  }
+
+  #contenido-principal .mensaje-lateral {
+    grid-row: auto;
+  }
+
+  .portada-lateral {
+    grid-column: 3;
+    position: sticky;
+    top: 16px;
+  }
+}
+
+
+/* Buscador de juegos del formulario "Deja tu opinión" */
+.buscador-juego {
+  position: relative;
+}
+
+.sugerencias-juego {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: #0f1a33;
+  border: 3px solid var(--pixel-border);
+  box-shadow: var(--pixel-shadow);
+}
+
+.sugerencias-titulo {
+  padding: 10px 12px 6px;
+  color: #79d98a;
+  font-size: 0.55rem;
+  cursor: default;
+}
+
+.sugerencia-juego {
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 0.65rem;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.sugerencia-juego:hover,
+.sugerencia-juego[aria-selected="true"] {
+  background: #2a4170;
+}
+
+.sugerencia-anio {
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+/* Página de superadministración */
+.admin-cuentas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr));
+  gap: 22px;
+  margin-top: 8px;
+}
+
+.cuenta-admin {
+  display: grid;
+  gap: 18px;
+  align-content: start;
+  padding: 20px;
+  background: var(--panel-soft);
+  border: 4px solid var(--pixel-border);
+  box-shadow: var(--pixel-shadow);
+}
+
+.cuenta-admin-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 2px dashed rgba(255, 255, 255, 0.14);
+}
+
+.cuenta-admin-nombre {
+  color: #8be9fd;
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.rol-cuenta {
+  flex-shrink: 0;
+  padding: 6px 8px;
+  font-size: 0.55rem;
+  text-transform: uppercase;
+  background: #2e3440;
+  border: 2px solid var(--pixel-border);
+  box-shadow: 2px 2px 0 #000000;
+}
+
+.rol-cuenta.admin {
+  background: var(--accent-red);
+  color: #ffffff;
+}
+
+.campo-admin {
+  display: grid;
+  gap: 8px;
+}
+
+.campo-admin-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.campo-admin-fila .btn {
+  font-size: 0.6rem;
+  white-space: nowrap;
+}
+
+.mensaje-cuenta {
+  font-size: 0.6rem;
+}
+
+.admin-secciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.admin-secciones .card {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.admin-secciones .btn.danger {
+  justify-self: start;
+}
+
+.admin-ayuda {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.65rem;
+  line-height: 1.7;
+}
+
+@media (max-width: 480px) {
+  .campo-admin-fila {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Logo "Frikicoments": enlace a la portada con el mismo aspecto que el título */
+.logo-enlace,
+.logo-enlace:visited {
+  color: inherit;
+  text-decoration: none;
+}
+
+.logo-enlace:hover {
+  color: #fff27a;
+}
+
+.logo-enlace:focus-visible {
+  outline: 3px solid #8be9fd;
+  outline-offset: 4px;
+}
+
+/* Cabecera común de las páginas: logo (enlace a la portada), título y navegación */
+.cabecera-pagina {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 18px 28px;
+}
+
+/* Páginas sin .container (juego, resultados, biblioteca) */
+body > .cabecera-pagina {
+  width: var(--ancho-pagina);
+  margin: 30px auto 24px;
+}
+
+.cabecera-pagina-textos {
+  min-width: 0;
+}
+
+.logo-sitio {
+  display: inline-block;
+  margin-bottom: 12px;
+  color: #f7d51d;
+  font-size: 0.8rem;
+  text-shadow: 2px 2px 0 #000000;
+}
+
+.cabecera-pagina h1 {
+  color: #8be9fd;
+  overflow-wrap: anywhere;
+}
+
+.cabecera-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cabecera-nav .btn {
+  font-size: 0.6rem;
+  text-decoration: none;
+}
+
+.cabecera-nav .btn[aria-current="page"] {
+  background: var(--accent-green);
+  color: #000000;
+}
+
+@media (max-width: 480px) {
+  .cabecera-pagina h1 {
+    font-size: 1rem;
+  }
+
+  .cabecera-nav .btn {
+    flex: 1 1 130px;
+    text-align: center;
+  }
+}
+
+/* Mi cuenta: acciones de la sesión en fila */
+.acciones-cuenta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.acciones-cuenta form {
+  margin: 0;
 }

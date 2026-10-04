@@ -842,6 +842,66 @@ app.get('/api/juegos/buscar', requerirInicioSesion, async (req, res) => {
   }
 });
 
+// Juegos con reseñas recientes (portada y páginas de juego), sin repetir.
+// Va antes de /api/juegos/:id para que "recientes" no se tome como un id.
+app.get('/api/juegos/recientes', requerirInicioSesion, async (req, res) => {
+  const maximo = 8;
+  try {
+    const [dePortada] = await pool.execute(
+      `SELECT juego AS nombre, MAX(creado_en) AS ultima
+       FROM comentarios GROUP BY juego ORDER BY ultima DESC LIMIT ${maximo}`
+    );
+    const [dePaginas] = await pool.execute(
+      `SELECT juego_id, MAX(creado_en) AS ultima
+       FROM comentarios_juegos GROUP BY juego_id ORDER BY ultima DESC LIMIT ${maximo}`
+    );
+    // Si IGDB falla, se muestran al menos los juegos de la portada.
+    const nombres = await consultarNombresJuegosIGDB(dePaginas.map(fila => fila.juego_id))
+      .catch(() => new Map());
+
+    const candidatos = [
+      ...dePortada,
+      ...dePaginas
+        .filter(fila => nombres.has(fila.juego_id))
+        .map(fila => ({ nombre: nombres.get(fila.juego_id), ultima: fila.ultima }))
+    ].sort((a, b) => new Date(b.ultima) - new Date(a.ultima));
+
+    const vistos = new Set();
+    const juegos = [];
+    for (const { nombre } of candidatos) {
+      const clave = nombre.toLowerCase();
+      if (vistos.has(clave)) continue;
+      vistos.add(clave);
+      juegos.push({ nombre });
+      if (juegos.length === maximo) break;
+    }
+    res.json(juegos);
+  } catch (error) {
+    console.error('Error al cargar juegos recientes:', error.code || error.message);
+    res.status(500).json({ error: 'No se pudieron cargar los juegos recientes.' });
+  }
+});
+
+// Devuelve un Map id -> nombre con una sola petición a IGDB.
+async function consultarNombresJuegosIGDB(ids) {
+  const idsValidos = [...new Set(ids.map(Number))].filter(id => Number.isInteger(id) && id > 0);
+  if (idsValidos.length === 0) return new Map();
+
+  const token = await getTwitchToken();
+  const igdbRes = await fetch('https://api.igdb.com/v4/games', {
+    method: 'POST',
+    headers: {
+      'Client-ID': process.env.IGDB_CLIENT_ID.trim(),
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'text/plain'
+    },
+    body: `fields name; where id = (${idsValidos.join(',')}); limit ${idsValidos.length};`
+  });
+  if (!igdbRes.ok) throw new Error(`IGDB respondió con ${igdbRes.status}.`);
+  const juegos = await igdbRes.json();
+  return new Map(juegos.map(juego => [juego.id, juego.name]));
+}
+
 async function consultarJuegoIGDB(id) {
   const token = await getTwitchToken();
   const clientId = process.env.IGDB_CLIENT_ID.trim();
@@ -994,22 +1054,27 @@ app.put('/api/juegos/:id/me-gusta', requerirInicioSesion, async (req, res) => {
 app.get('/api/mi-biblioteca', requerirInicioSesion, async (req, res) => {
   try {
     const [filas] = await pool.execute(
-      `SELECT juego_id,
-         MAX(guardado) AS guardado,
-         MAX(me_gusta) AS me_gusta,
-         MAX(estado) AS estado
+      `SELECT b.juego_id, b.guardado, b.me_gusta, b.estado
        FROM (
-         SELECT juego_id, 1 AS guardado, 0 AS me_gusta, NULL AS estado
-         FROM juegos_guardados WHERE usuario_id = ?
-         UNION ALL
-         SELECT juego_id, 0, 1, NULL
-         FROM juegos_me_gusta WHERE usuario_id = ?
-         UNION ALL
-         SELECT juego_id, 0, 0, estado
-         FROM juegos_usuario WHERE usuario_id = ?
-       ) biblioteca
-       GROUP BY juego_id ORDER BY juego_id`,
-      [req.usuarioId, req.usuarioId, req.usuarioId]
+         SELECT juego_id,
+           MAX(guardado) AS guardado,
+           MAX(me_gusta) AS me_gusta,
+           MAX(estado) AS estado
+         FROM (
+           SELECT juego_id, 1 AS guardado, 0 AS me_gusta, NULL AS estado
+           FROM juegos_guardados WHERE usuario_id = ?
+           UNION ALL
+           SELECT juego_id, 0, 1, NULL
+           FROM juegos_me_gusta WHERE usuario_id = ?
+           UNION ALL
+           SELECT juego_id, 0, 0, estado
+           FROM juegos_usuario WHERE usuario_id = ?
+         ) marcas
+         GROUP BY juego_id
+       ) b
+       LEFT JOIN biblioteca_orden o ON o.usuario_id = ? AND o.juego_id = b.juego_id
+       ORDER BY o.posicion IS NULL, o.posicion, b.juego_id`,
+      [req.usuarioId, req.usuarioId, req.usuarioId, req.usuarioId]
     );
     const biblioteca = await Promise.all(filas.map(async fila => ({
       ...fila,
@@ -1019,6 +1084,36 @@ app.get('/api/mi-biblioteca', requerirInicioSesion, async (req, res) => {
   } catch (error) {
     console.error('Error al cargar biblioteca:', error.code || error.message);
     res.status(500).json({ error: 'No se pudo cargar tu biblioteca.' });
+  }
+});
+
+// Guarda el orden de la biblioteca elegido por el usuario (lista completa de ids).
+app.put('/api/mi-biblioteca/orden', requerirInicioSesion, async (req, res) => {
+  const juegos = req.body.juegos;
+  const valido = Array.isArray(juegos)
+    && juegos.length <= 1000
+    && juegos.every(id => Number.isInteger(id) && id > 0)
+    && new Set(juegos).size === juegos.length;
+  if (!valido) {
+    return res.status(400).json({ error: 'El orden enviado no es válido.' });
+  }
+
+  const conexion = await pool.getConnection();
+  try {
+    await conexion.beginTransaction();
+    await conexion.execute('DELETE FROM biblioteca_orden WHERE usuario_id = ?', [req.usuarioId]);
+    if (juegos.length > 0) {
+      const filas = juegos.map((juegoId, posicion) => [req.usuarioId, juegoId, posicion]);
+      await conexion.query('INSERT INTO biblioteca_orden (usuario_id, juego_id, posicion) VALUES ?', [filas]);
+    }
+    await conexion.commit();
+    res.json({ ok: true });
+  } catch (error) {
+    await conexion.rollback().catch(() => {});
+    console.error('Error al guardar el orden de la biblioteca:', error.code || error.message);
+    res.status(500).json({ error: 'No se pudo guardar el orden.' });
+  } finally {
+    conexion.release();
   }
 });
 
@@ -1165,6 +1260,17 @@ async function iniciarServidor() {
       UNIQUE KEY uq_archivos_nombre_disco (nombre_disco),
       KEY ix_archivos_usuario (usuario_id, nombre_original),
       CONSTRAINT fk_archivos_usuario_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+        ON UPDATE CASCADE ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS biblioteca_orden (
+      usuario_id INT UNSIGNED NOT NULL,
+      juego_id INT UNSIGNED NOT NULL,
+      posicion INT UNSIGNED NOT NULL,
+      PRIMARY KEY (usuario_id, juego_id),
+      CONSTRAINT fk_biblioteca_orden_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
         ON UPDATE CASCADE ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
