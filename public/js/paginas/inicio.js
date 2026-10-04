@@ -110,8 +110,9 @@ async function cargarChat() {
       return elemento;
     }));
     if (window.innerWidth > 800) chat.hidden = false;
-  } catch {
-    chat.hidden = true;
+  } catch (error) {
+    // Se muestra el motivo (p. ej. cifrado sin configurar) en vez de ocultar el chat sin más.
+    chatMensajes.replaceChildren(crear('p', { clase: 'auth-message error', texto: error.message }));
   }
 }
 

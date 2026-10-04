@@ -6,25 +6,59 @@ const { requerirInicioSesion, requerirOtroUsuario } = require('../middleware/ses
 const { limitarIGDB, limitarMensajes } = require('../middleware/limites');
 const { textoEntre } = require('../utilidades/validacion');
 const igdb = require('../servicios/igdb');
+const { cifrar, descifrar, ErrorCifradoChat } = require('../servicios/cifrado-chat');
 
 const router = express.Router();
 
 // ---- Chat de la portada (los mensajes duran 24 horas) y aviso lateral ----
+// Los mensajes se guardan cifrados (AES-256-GCM, ver servicios/cifrado-chat.js).
+// Los antiguos en texto plano se leen tal cual hasta que scripts/cifrar-chat.js los cifra.
+const errorSinClave = { estado: 503, error: 'El chat no está disponible: falta configurar el cifrado en el servidor.' };
+const errorDescifrado = { estado: 500, error: 'No se pudieron leer los mensajes del chat. Avisa a un administrador.' };
+
+// Responde al error de cifrado con un mensaje seguro (sin datos del mensaje ni de la clave).
+function responderErrorCifrado(res, error, mensajeId) {
+  const fallo = error.codigo === 'SIN_CLAVE' ? errorSinClave : errorDescifrado;
+  console.error(`[CHAT] ${error.codigo}${mensajeId ? ` en el mensaje ${mensajeId}` : ''}`);
+  return res.status(fallo.estado).json({ error: fallo.error });
+}
+
 router.get('/api/chat', requerirInicioSesion, async (req, res) => {
-  const [mensajes] = await pool.execute(
-    `SELECT c.id, u.nombre_usuario AS usuario, c.contenido, c.creado_en
+  const [filas] = await pool.execute(
+    `SELECT c.id, c.usuario_id, u.nombre_usuario AS usuario, c.contenido, c.contenido_cifrado, c.creado_en
      FROM chat_mensajes c INNER JOIN usuarios u ON u.id = c.usuario_id
      WHERE c.creado_en > DATE_SUB(NOW(), INTERVAL 24 HOUR)
      ORDER BY c.creado_en DESC, c.id DESC LIMIT 50`
   );
-  res.json(mensajes.reverse());
+  const mensajes = [];
+  for (const fila of filas.reverse()) {
+    let contenido = fila.contenido; // mensaje antiguo, aún sin cifrar
+    if (fila.contenido_cifrado !== null) {
+      try {
+        contenido = descifrar(fila.contenido_cifrado, fila.usuario_id);
+      } catch (error) {
+        if (error instanceof ErrorCifradoChat) return responderErrorCifrado(res, error, fila.id);
+        throw error;
+      }
+    }
+    mensajes.push({ id: fila.id, usuario: fila.usuario, contenido, creado_en: fila.creado_en });
+  }
+  res.json(mensajes);
 });
 
 router.post('/api/chat', requerirInicioSesion, limitarMensajes, async (req, res) => {
   const contenido = textoEntre(req.body.contenido, 500);
   if (!contenido) return res.status(400).json({ error: 'El mensaje debe tener entre 1 y 500 caracteres.' });
+  let cifrado;
+  try {
+    cifrado = cifrar(contenido, req.usuarioId);
+  } catch (error) {
+    // Sin clave nunca se guarda el mensaje en texto plano.
+    if (error instanceof ErrorCifradoChat) return responderErrorCifrado(res, error);
+    throw error;
+  }
   const [resultado] = await pool.execute(
-    'INSERT INTO chat_mensajes (usuario_id, contenido) VALUES (?, ?)', [req.usuarioId, contenido]
+    'INSERT INTO chat_mensajes (usuario_id, contenido_cifrado) VALUES (?, ?)', [req.usuarioId, cifrado]
   );
   res.status(201).json({ id: resultado.insertId, usuario: req.usuario, contenido });
 });

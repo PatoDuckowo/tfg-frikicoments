@@ -10,6 +10,8 @@ process.env.NODE_ENV = 'test';
 process.env.LOGIN_USERNAME = 'superadmin_test';
 process.env.IGDB_CLIENT_ID = '';
 process.env.IGDB_CLIENT_SECRET = '';
+// Clave aleatoria solo para esta ejecución de los tests.
+process.env.CHAT_ENCRYPTION_KEY = crypto.randomBytes(32).toString('base64');
 process.env.DIRECTORIO_ARCHIVOS = fs.mkdtempSync(path.join(os.tmpdir(), 'frikicoments-tests-'));
 if (!/test/i.test(process.env.DB_NAME || '')) {
   throw new Error('Los tests borran la base: DB_NAME debe contener "test".');

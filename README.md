@@ -56,6 +56,16 @@ Es una aplicación monolítica sencilla: un único servidor Express sirve las p�
 
 Las tablas no se crean a mano. Al arrancar, el servidor aplica en orden las migraciones de `src/db/migraciones` que todavía no estén en la tabla `migraciones`. Para cambiar la base, se añade un archivo nuevo con el número siguiente; nunca se modifica uno ya aplicado.
 
+### Cifrado en reposo del chat
+
+Los mensajes del chat de la portada se guardan cifrados con AES-256-GCM: si alguien obtiene la base de datos o una copia de seguridad, no puede leerlos. El servidor tiene la clave y sí puede descifrarlos, así que **no es cifrado de extremo a extremo**.
+
+- La clave va en `CHAT_ENCRYPTION_KEY` (`.env`, nunca en Git): 32 bytes aleatorios en base64. Para crearla sin que aparezca en pantalla:
+  `printf 'CHAT_ENCRYPTION_KEY=%s\n' "$(node -e "console.log(require('crypto').randomBytes(32).toString('base64'))")" >> .env`
+- **Guarda una copia de la clave aparte de las copias de la base** (por ejemplo, en un gestor de contraseñas). Sin ella, los mensajes cifrados no se pueden recuperar.
+- Sin clave, el chat responde con un error claro y no guarda nada en texto plano.
+- Los mensajes antiguos en texto plano se cifran con `node scripts/cifrar-chat.js` (`--comprobar` solo cuenta y verifica). Se puede repetir o interrumpir sin peligro.
+
 ### Inicializar una instalación nueva
 
 Configura en `.env` `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `LOGIN_USERNAME`, `LOGIN_PASSWORD`, `IGDB_CLIENT_ID` e `IGDB_CLIENT_SECRET`. La cuenta `LOGIN_USERNAME` es el superadministrador.
