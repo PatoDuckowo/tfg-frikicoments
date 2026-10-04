@@ -107,6 +107,23 @@ Los tests (`test/*.test.js`, con `node:test`) arrancan la aplicación contra una
 scripts/tests-docker.sh
 ```
 
+## Mantenimiento y versiones
+
+| Componente | Versión | Soporte hasta |
+|---|---|---|
+| Node.js (imagen `node:24-alpine`) | 24 LTS | abril de 2028 |
+| MySQL (imagen `mysql:8.4`) | 8.4 LTS | abril de 2032 |
+
+**Registro de actualizaciones**
+- **Octubre de 2026:** Node 20 → 24 y MySQL 8.0 → 8.4, porque Node 20 y MySQL 8.0 dejaron de recibir parches de seguridad en abril de 2026. La actualización de MySQL se probó antes sobre una copia de producción en la base de pruebas: MySQL actualiza los datos solo al arrancar la versión nueva sobre el mismo volumen. Los tests pasan con las dos versiones nuevas.
+
+**Cómo actualizar en el futuro**
+1. Cambia la imagen en `Dockerfile` (Node) o en `docker-compose.yml` (MySQL) y en `scripts/tests-docker.sh`.
+2. Prueba primero con la base de pruebas y ejecuta `scripts/tests-docker.sh`.
+3. Haz una copia de la base y de `.env` antes de tocar producción.
+4. `docker compose up -d --build --wait` y revisa `docker compose logs db`. En una actualización de MySQL debe aparecer «Server upgrade … completed».
+5. MySQL 8.4 no permite volver a 8.0 sobre los mismos datos: para volver atrás hay que restaurar la copia.
+
 ## Ejecución en local
 
 ```bash

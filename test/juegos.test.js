@@ -54,6 +54,8 @@ test('marcadores y estado del juego', async () => {
   await peticion('/api/juegos/2/me-gusta', { metodo: 'PUT', cookie: ana.cookie, datos: { meGusta: true } });
   await peticion('/api/juegos/3/guardado', { metodo: 'PUT', cookie: ana.cookie, datos: { guardado: true } });
   assert.equal((await peticion('/api/juegos/1/estado', { metodo: 'PUT', cookie: ana.cookie, datos: { estado: 'raro' } })).estado, 400);
+  await peticion('/api/juegos/1/estado', { metodo: 'PUT', cookie: ana.cookie, datos: { estado: 'jugado' } });
+  // Segundo cambio sobre el mismo juego: prueba la rama ON DUPLICATE KEY UPDATE.
   await peticion('/api/juegos/1/estado', { metodo: 'PUT', cookie: ana.cookie, datos: { estado: 'pendiente' } });
 
   assert.deepEqual((await peticion('/api/juegos/2/marcadores', { cookie: ana.cookie })).datos, { guardado: false, meGusta: true });
@@ -71,4 +73,20 @@ test('la biblioteca respeta el orden guardado', async () => {
 
   const repetido = await peticion('/api/mi-biblioteca/orden', { metodo: 'PUT', cookie: ana.cookie, datos: { juegos: [1, 1] } });
   assert.equal(repetido.estado, 400);
+});
+
+test('solo el autor puede borrar su reseña', async () => {
+  const beto = await conSesion('beto');
+  const { datos } = await publicar({ juegoId: 3, contenido: 'La borraré' });
+  const deAna = await peticion('/api/juegos/3/resenas', { cookie: ana.cookie });
+  assert.equal(deAna.datos.find(r => r.id === datos.id).propia, true);
+  const deBeto = await peticion('/api/juegos/3/resenas', { cookie: beto.cookie });
+  assert.equal(deBeto.datos.find(r => r.id === datos.id).propia, false);
+
+  assert.equal((await peticion(`/api/resenas/${datos.id}`, { metodo: 'DELETE', cookie: beto.cookie })).estado, 404);
+  assert.equal((await peticion('/api/resenas/abc', { metodo: 'DELETE', cookie: ana.cookie })).estado, 404);
+  assert.equal((await peticion(`/api/resenas/${datos.id}`, { metodo: 'DELETE' })).estado, 401);
+  assert.equal((await peticion(`/api/resenas/${datos.id}`, { metodo: 'DELETE', cookie: ana.cookie })).estado, 200);
+  assert.equal((await peticion('/api/juegos/3/resenas', { cookie: ana.cookie })).datos.length, 0);
+  assert.equal((await peticion(`/api/resenas/${datos.id}`, { metodo: 'DELETE', cookie: ana.cookie })).estado, 404);
 });

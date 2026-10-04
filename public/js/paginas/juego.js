@@ -1,5 +1,5 @@
 // Ficha de un juego: datos de IGDB, estado y marcadores propios, y reseñas de la comunidad.
-import { api, crear, avisar, fecha, colorDeUsuario, enlacePerfil, caratulaPorDefecto } from '../comun.js';
+import { api, crear, avisar, fecha, colorDeUsuario, enlacePerfil, caratulaPorDefecto, botonBorrarResena } from '../comun.js';
 
 const $ = selector => document.querySelector(selector);
 const juegoId = new URLSearchParams(window.location.search).get('id');
@@ -21,6 +21,9 @@ function mostrarResenas(resenas) {
       crear('p', { texto: resena.contenido }),
       crear('small', { clase: 'comment-date', texto: fecha(resena.creado_en) })
     ]);
+    if (resena.propia) {
+      articulo.append(botonBorrarResena(resena, async () => mostrarResenas(await api(`/api/juegos/${juegoId}/resenas`)), $('#mensaje-comentario')));
+    }
     articulo.style.setProperty('--usuario-color', colorDeUsuario(resena.usuario));
     return articulo;
   }));

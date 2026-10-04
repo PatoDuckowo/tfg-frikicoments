@@ -1810,3 +1810,77 @@ a.game-tag:focus-visible {
 .seccion-separada {
   margin-top: 24px;
 }
+
+/* Bandeja de mensajes privados: fuera de la fila de secciones, a la derecha, en amarillo.
+   Solo cambia las cabeceras que llevan bandeja (no la 404 ni la de recuperar contraseña). */
+.cabecera-nav:has(.bandeja-mensajes) {
+  flex: 1 1 auto;
+}
+
+.btn.bandeja-mensajes {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #f7d51d;
+  color: #000000;
+}
+
+.bandeja-mensajes img {
+  display: block;
+  image-rendering: pixelated;
+}
+
+.btn.bandeja-mensajes[aria-current="page"] {
+  background: var(--accent-green);
+}
+
+/* En móvil, solo el sobre, fijo arriba a la derecha de la cabecera */
+@media (max-width: 480px) {
+  header {
+    position: relative;
+  }
+
+  .cabecera-pagina:has(.bandeja-mensajes) .cabecera-pagina-textos {
+    padding-right: 64px;
+  }
+
+  .cabecera-nav .btn.bandeja-mensajes,
+  .account-actions .btn.bandeja-mensajes {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    flex: none;
+    padding: 8px 10px;
+  }
+
+  .bandeja-texto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
+
+/* Portada: las acciones de la cuenta ocupan la fila, así la bandeja queda a la derecha */
+#account-actions {
+  flex: 1 1 auto;
+}
+
+@media (max-width: 480px) {
+  body:not(.sin-sesion) header > h1 {
+    padding-right: 72px;
+    font-size: 1.15rem;
+  }
+}
+
+/* Botón para que el autor borre su reseña */
+.btn.borrar-resena {
+  display: block;
+  margin-top: 12px;
+  margin-left: auto;
+  padding: 6px 10px;
+  font-size: 0.55rem;
+}

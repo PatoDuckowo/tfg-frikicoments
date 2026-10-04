@@ -108,13 +108,30 @@ export function tarjetaJuego(juego, detalle) {
   ]);
 }
 
+// Botón «Borrar» para una reseña propia. Pide confirmación y, si se borra, llama a alBorrar.
+export function botonBorrarResena(resena, alBorrar, aviso) {
+  const boton = crear('button', { type: 'button', clase: 'btn danger borrar-resena', texto: 'Borrar' });
+  boton.addEventListener('click', async () => {
+    if (!window.confirm('¿Borrar tu reseña? No se puede deshacer.')) return;
+    boton.disabled = true;
+    try {
+      await api(`/api/resenas/${resena.id}`, { metodo: 'DELETE' });
+      await alBorrar();
+    } catch (error) {
+      if (aviso) avisar(aviso, error.message, true);
+      boton.disabled = false;
+    }
+  });
+  return boton;
+}
+
 // ---- Menú de la cabecera ----
 // <nav class="cabecera-nav" data-menu="biblioteca"> marca la página actual;
 // data-menu="publico" deja solo «Portada»; data-volver añade «< Volver» al principio.
+// «Mensajes» no es una sección más: va aparte, a la derecha, como bandeja de entrada.
 const opcionesMenu = [
   ['portada', '/', 'Portada'],
   ['personas', '/usuarios/perfil.html', 'Personas'],
-  ['mensajes', '/usuarios/mensajes.html', 'Mensajes'],
   ['biblioteca', '/usuarios/biblioteca.html', 'Mi biblioteca'],
   ['archivos', '/usuarios/archivos.html', 'Mis archivos'],
   ['cuenta', '/usuarios/mi-cuenta.html', 'Mi cuenta']
@@ -138,7 +155,21 @@ function pintarMenu() {
   for (const [clave, ruta, texto] of opciones) {
     menu.append(crear('a', { clase: 'btn primary', href: ruta, texto, 'aria-current': clave === actual ? 'page' : null }));
   }
-  if (actual !== 'publico') vigilarMensajesSinLeer();
+  if (actual !== 'publico') {
+    menu.append(bandejaMensajes(actual === 'mensajes'));
+    vigilarMensajesSinLeer();
+  }
+}
+
+// Botón de la bandeja: sobre pixel art + «Mensajes» (en móvil, solo el sobre) y el contador de no leídos.
+export function bandejaMensajes(esPaginaActual = false) {
+  return crear('a', {
+    clase: 'btn bandeja-mensajes', href: '/usuarios/mensajes.html', title: 'Mensajes privados',
+    'aria-current': esPaginaActual ? 'page' : null
+  }, [
+    crear('img', { src: '/img/sobre.svg', alt: '', width: 20, height: 15 }),
+    crear('span', { clase: 'bandeja-texto', texto: 'Mensajes' })
+  ]);
 }
 
 // ---- Aviso de mensajes privados sin leer (en el enlace «Mensajes») ----

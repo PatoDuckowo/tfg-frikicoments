@@ -26,17 +26,19 @@ async function conIGDB(res, trabajo) {
   }
 }
 
+// «propia» indica si la reseña es de quien la pide (solo su autor puede borrarla).
+const aResena = (fila, usuarioId) => ({
+  id: fila.id, usuario: fila.usuario, contenido: fila.contenido, creado_en: fila.creado_en, propia: fila.usuario_id === usuarioId
+});
+
 // Añade a cada reseña el nombre del juego. Si IGDB falla, la reseña se muestra igual sin nombre.
-async function conNombresDeJuego(resenas) {
-  const juegos = await igdb.obtenerJuegos(resenas.map(resena => resena.juego_id)).catch(() => new Map());
-  return resenas.map(({ juego_id: juegoId, ...resena }) => ({
-    ...resena,
-    juego: { id: juegoId, nombre: juegos.get(juegoId)?.name || null }
-  }));
+async function conNombresDeJuego(filas, usuarioId) {
+  const juegos = await igdb.obtenerJuegos(filas.map(fila => fila.juego_id)).catch(() => new Map());
+  return filas.map(fila => ({ ...aResena(fila, usuarioId), juego: { id: fila.juego_id, nombre: juegos.get(fila.juego_id)?.name || null } }));
 }
 
 const consultaResenas = `
-  SELECT r.id, r.juego_id, u.nombre_usuario AS usuario, r.contenido, r.creado_en
+  SELECT r.id, r.juego_id, r.usuario_id, u.nombre_usuario AS usuario, r.contenido, r.creado_en
   FROM resenas r INNER JOIN usuarios u ON u.id = r.usuario_id`;
 
 // ---- Búsqueda y ficha ----
@@ -80,8 +82,9 @@ router.put('/api/juegos/:id/estado', requerirInicioSesion, requerirJuegoId, asyn
   }
   if (!['jugado', 'pendiente', 'abandonado'].includes(estado)) return res.status(400).json({ error: 'Estado no válido.' });
   await pool.execute(
-    `INSERT INTO juegos_usuario (usuario_id, juego_id, estado) VALUES (?, ?, ?)
-     ON DUPLICATE KEY UPDATE estado = VALUES(estado)`,
+    // Sintaxis con alias (MySQL 8.0.19+): VALUES(col) está obsoleto y se eliminará.
+    `INSERT INTO juegos_usuario (usuario_id, juego_id, estado) VALUES (?, ?, ?) AS nuevo
+     ON DUPLICATE KEY UPDATE estado = nuevo.estado`,
     [req.usuarioId, req.juegoId, estado]
   );
   res.json({ ok: true, estado });
@@ -157,14 +160,14 @@ router.put('/api/mi-biblioteca/orden', requerirInicioSesion, async (req, res) =>
 // ---- Reseñas (una sola tabla, por id de IGDB) ----
 router.get('/api/resenas', requerirInicioSesion, limitarIGDB, async (req, res) => {
   const [resenas] = await pool.execute(`${consultaResenas} ORDER BY r.creado_en DESC, r.id DESC LIMIT 50`);
-  res.json(await conNombresDeJuego(resenas));
+  res.json(await conNombresDeJuego(resenas, req.usuarioId));
 });
 
 router.get('/api/juegos/:id/resenas', requerirInicioSesion, requerirJuegoId, async (req, res) => {
   const [resenas] = await pool.execute(
     `${consultaResenas} WHERE r.juego_id = ? ORDER BY r.creado_en DESC, r.id DESC LIMIT 200`, [req.juegoId]
   );
-  res.json(resenas.map(({ juego_id: _juegoId, ...resena }) => resena));
+  res.json(resenas.map(fila => aResena(fila, req.usuarioId)));
 });
 
 router.post('/api/resenas', requerirInicioSesion, limitarIGDB, async (req, res) => {
@@ -181,7 +184,17 @@ router.post('/api/resenas', requerirInicioSesion, limitarIGDB, async (req, res) 
   const [resultado] = await pool.execute(
     'INSERT INTO resenas (usuario_id, juego_id, contenido) VALUES (?, ?, ?)', [req.usuarioId, juegoId, contenido]
   );
-  res.status(201).json({ id: resultado.insertId, usuario: req.usuario, contenido, juego: { id: juegoId, nombre: juego.name } });
+  res.status(201).json({ id: resultado.insertId, usuario: req.usuario, contenido, propia: true, juego: { id: juegoId, nombre: juego.name } });
+});
+
+// Solo el autor puede borrar su reseña. Si no es suya, se responde igual que si no existiera.
+router.delete('/api/resenas/:id', requerirInicioSesion, async (req, res) => {
+  const id = idPositivo(req.params.id);
+  const [resultado] = id
+    ? await pool.execute('DELETE FROM resenas WHERE id = ? AND usuario_id = ?', [id, req.usuarioId])
+    : [{ affectedRows: 0 }];
+  if (resultado.affectedRows === 0) return res.status(404).json({ error: 'No existe esa reseña o no es tuya.' });
+  res.json({ ok: true, mensaje: 'Reseña borrada.' });
 });
 
 router.get('/api/estadisticas', requerirInicioSesion, async (req, res) => {

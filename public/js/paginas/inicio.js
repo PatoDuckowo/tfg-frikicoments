@@ -1,6 +1,6 @@
 // Portada: login a pantalla completa sin sesión; con sesión, chat, reseñas, estadísticas y formulario.
 import {
-  api, crear, avisar, fecha, formatearCantidad, colorDeUsuario, enlacePerfil, avatar, vigilarMensajesSinLeer
+  api, crear, avisar, fecha, formatearCantidad, colorDeUsuario, enlacePerfil, avatar, vigilarMensajesSinLeer, botonBorrarResena
 } from '../comun.js';
 
 const $ = selector => document.querySelector(selector);
@@ -173,6 +173,9 @@ async function cargarResenas() {
         crear('p', { texto: resena.contenido }),
         crear('small', { clase: 'comment-date', texto: fecha(resena.creado_en) })
       ]);
+      if (resena.propia) {
+        articulo.append(botonBorrarResena(resena, () => Promise.all([cargarResenas(), cargarEstadisticas()]), $('#comentario-mensaje')));
+      }
       articulo.style.setProperty('--usuario-color', colorDeUsuario(resena.usuario));
       return articulo;
     }));

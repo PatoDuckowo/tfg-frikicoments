@@ -1,8 +1,11 @@
 // Service worker de Frikicoments.
-// - CSS, JS e imágenes de la web: se sirven de la caché y se actualizan en segundo plano.
+// - CSS y JS: primero la red y, sin conexión, la copia guardada. Los módulos JS se importan entre sí
+//   y deben ir siempre en la misma versión (servirlos de caché podría mezclar archivos viejos y nuevos).
+// - Imágenes: de la caché, actualizándose en segundo plano.
 // - Páginas: siempre de la red; sin conexión se muestra /offline.html.
 // - La API (/api/) nunca se guarda: son datos privados de cada persona.
-const CACHE = 'frikicoments-v1';
+// Cambiar el nombre al modificar este archivo borra la caché anterior.
+const CACHE = 'frikicoments-v2';
 const PRECARGA = [
   '/offline.html', '/css/styles.css', '/css/catalogo.css', '/js/comun.js',
   '/img/escena-login.svg', '/img/sin-caratula.svg', '/img/icono.svg', '/img/icono-192.png'
@@ -30,7 +33,18 @@ self.addEventListener('fetch', evento => {
     return;
   }
 
-  if (/^\/(css|js|img)\//.test(url.pathname)) {
+  if (/^\/(css|js)\//.test(url.pathname)) {
+    evento.respondWith(fetch(peticion).then(respuesta => {
+      if (respuesta.ok) {
+        const copia = respuesta.clone();
+        caches.open(CACHE).then(cache => cache.put(peticion, copia));
+      }
+      return respuesta;
+    }).catch(() => caches.match(peticion)));
+    return;
+  }
+
+  if (url.pathname.startsWith('/img/')) {
     evento.respondWith(caches.open(CACHE).then(async cache => {
       const guardada = await cache.match(peticion);
       const deRed = fetch(peticion).then(respuesta => {
