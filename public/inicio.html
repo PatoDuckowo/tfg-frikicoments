@@ -74,7 +74,7 @@
 
                 <div class="stats">
                     <div class="stat card">
-                        <strong>12.4k</strong>
+                        <strong id="stat-resenas">–</strong>
                         <span>Reseñas publicadas</span>
                     </div>
                     <div class="stat card">
@@ -177,6 +177,27 @@
         const chatMensaje = document.querySelector('#chat-mensaje');
         const chatToggle = document.querySelector('#chat-toggle');
         const chatCerrar = document.querySelector('#chat-cerrar');
+        const statResenas = document.querySelector('#stat-resenas');
+
+        // 950 -> "950", 12400 -> "12.4k", 1500000 -> "1.5M"
+        function formatearCantidad(numero) {
+            if (numero < 1000) return String(numero);
+            if (numero < 999950) return `${(numero / 1000).toFixed(1).replace(/\.0$/, '')}k`;
+            return `${(numero / 1000000).toFixed(1).replace(/\.0$/, '')}M`;
+        }
+
+        async function cargarEstadisticas() {
+            if (document.hidden) return;
+            try {
+                const respuesta = await fetch('/api/estadisticas', { credentials: 'same-origin' });
+                if (!respuesta.ok) return;
+                const datos = await respuesta.json();
+                statResenas.textContent = formatearCantidad(datos.resenas);
+                statResenas.title = `${datos.resenas.toLocaleString('es-ES')} reseñas`;
+            } catch (error) {
+                // Se mantiene el último valor mostrado.
+            }
+        }
 
         function crearElemento(tag, clase, texto) {
             const elemento = document.createElement(tag);
@@ -314,6 +335,8 @@
                 cargarChat();
                 window.setInterval(actualizarChat, 10000);
                 cargarComentarios();
+                cargarEstadisticas();
+                window.setInterval(cargarEstadisticas, 30000);
                 return true;
             } catch (error) {
                 return false;
@@ -369,7 +392,7 @@
 
                 formularioComentario.reset();
                 mensajeComentario.textContent = 'Comentario guardado en MySQL.';
-                await cargarComentarios();
+                await Promise.all([cargarComentarios(), cargarEstadisticas()]);
             } catch (error) {
                 mensajeComentario.textContent = error.message;
                 mensajeComentario.classList.add('error');

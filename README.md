@@ -53,6 +53,33 @@ El script crea las tablas `usuarios` y `comentarios`, guarda el admin con bcrypt
 
 Si se olvida la contraseña del admin, cambia `LOGIN_PASSWORD` en `.env` y ejecuta `npm run db:reset-admin`; el comando actualiza el hash bcrypt de `LOGIN_USERNAME` sin mostrar la contraseña.
 
+### Despliegue con Docker
+
+Docker Compose lee la configuración privada desde `.env`; define `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `LOGIN_USERNAME` y `LOGIN_PASSWORD`. `DB_HOST` y `DB_PORT` se sustituyen dentro del contenedor web. Para una instalación nueva, define también `MYSQL_ROOT_PASSWORD`; si falta, Compose usa `DB_PASSWORD` como alternativa. No se copia `.env` ni `usuarios.json` a la imagen.
+
+Valida y construye sin mostrar la configuración resuelta:
+
+```bash
+docker compose config --quiet
+docker compose build web
+```
+
+Los datos de MySQL viven en el volumen `tfg-frikicoments_db_data` y los archivos subidos en `./storage`. En una instalación nueva (volumen vacío), MySQL crea las tablas automáticamente a partir de `sql/schema.sql`. Para crear el administrador inicial, con MySQL ya activo:
+
+```bash
+docker compose run --rm --no-deps web npm run db:init
+docker compose up -d web
+```
+
+La imagen web contiene el código, así que tras cada cambio hay que reconstruirla. El despliegue es manual:
+
+```bash
+git pull
+docker compose up -d --build web
+```
+
+La web solo escucha en `127.0.0.1:3001`; desde fuera únicamente se accede a través de Tailscale Funnel.
+
 ### Prueba de extremo a extremo
 
 1. Inicia sesión con una cuenta existente (el administrador inicial está configurado en `.env`).
@@ -84,13 +111,13 @@ http://localhost:3000
 
 ## Despliegue
 
-El proyecto está alojado en una **Raspberry Pi**. Para poder acceder a él desde fuera de la red local se utiliza **Tailscale**, que crea una red privada entre los dispositivos autorizados.
+El proyecto está alojado en una **Raspberry Pi**. Para poder acceder a él desde fuera de la red local se utiliza **Tailscale Funnel**, que publica la web por HTTPS con certificado válido sin abrir puertos en el router. La comunidad es privada: solo se puede entrar con una cuenta creada por invitación de un administrador.
 
 Actualmente se puede acceder a la aplicación mediante:
 
 "Aquí ira el autentico enlace que tenemos con Taiscale"
 
-La Raspberry Pi ejecuta el servidor Node.js y Tailscale permite acceder a él usando esa dirección.
+La Raspberry Pi ejecuta la web y MySQL en contenedores Docker aislados, y Tailscale Funnel redirige esa dirección al contenedor web.
 
 ## Objetivo final
 

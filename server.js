@@ -10,27 +10,63 @@ const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', 1);// Para obtener la IP real del cliente detrás de un proxy
 const PORT = process.env.PORT || 3000;
+// Solo localhost: Tailscale Funnel es la única entrada. En Docker se usa HOST=0.0.0.0
+// y el puerto se publica únicamente en 127.0.0.1 del anfitrión.
+const HOST = process.env.HOST || '127.0.0.1';
 const superAdministrador = (process.env.LOGIN_USERNAME || '').trim();
 const cuotaArchivosPorDefectoBytes = 500 * 1024 * 1024;
 const cuotaArchivosMaximaBytes = 10 * 1024 * 1024 * 1024;
 const directorioArchivos = path.join(__dirname, 'storage', 'usuarios');
 const maximoArchivosPorUsuario = 1000;
+// Espacio que siempre debe quedar libre en el disco tras una subida.
+const espacioLibreMinimoBytes = 5 * 1024 * 1024 * 1024;
+// Margen para las cabeceras multipart incluidas en Content-Length.
+const margenMultipartBytes = 64 * 1024;
 const limitesLogin = new Map();
 const limitesSubida = new Map();
+const subidasEnCurso = new Set();
 const fallosLogin = new Map();
 const bloqueosLogin = new Map();
 
 fs.mkdirSync(directorioArchivos, { recursive: true });
 
-const subidaArchivo = multer({
-  storage: multer.diskStorage({
-    destination: directorioArchivos,
-    filename: (req, file, callback) => {
-      callback(null, `${Date.now()}-${crypto.randomBytes(16).toString('hex')}`);
-    }
-  }),
-  limits: { fileSize: cuotaArchivosMaximaBytes }
+const almacenamientoArchivos = multer.diskStorage({
+  destination: directorioArchivos,
+  filename: (req, file, callback) => {
+    callback(null, `${Date.now()}-${crypto.randomBytes(16).toString('hex')}`);
+  }
 });
+
+// El límite de tamaño es lo que le queda al usuario de su cuota, no el máximo global:
+// así multer corta la subida en cuanto se excede, en vez de escribir el archivo entero.
+function crearSubidaArchivo(limiteBytes) {
+  return multer({
+    storage: almacenamientoArchivos,
+    limits: { fileSize: limiteBytes, files: 1, fields: 5 }
+  }).single('archivo');
+}
+
+async function consultarUsoArchivos(usuarioId) {
+  const [filas] = await pool.execute(
+    `SELECT u.cuota_archivos_bytes AS cuota,
+       COALESCE(SUM(a.tamano_bytes), 0) AS usados,
+       COUNT(a.id) AS total
+     FROM usuarios u
+     LEFT JOIN archivos_usuario a ON a.usuario_id = u.id
+     WHERE u.id = ?
+     GROUP BY u.id`,
+    [usuarioId]
+  );
+  return {
+    cuotaBytes: Number(filas[0].cuota),
+    usadosBytes: Number(filas[0].usados),
+    total: Number(filas[0].total)
+  };
+}
+
+function esNombreSuperAdministrador(nombre) {
+  return Boolean(superAdministrador) && String(nombre).toLowerCase() === superAdministrador.toLowerCase();
+}
 
 app.use(express.json());
 
@@ -125,6 +161,32 @@ function requerirAdministrador(req, res, next) {
   next();
 }
 
+// Un administrador solo puede gestionar cuentas de usuario normales (y la suya propia).
+// Las cuentas de administrador, incluida la del superadministrador, solo las gestiona el superadministrador.
+async function requerirCuentaGestionable(req, res, next) {
+  try {
+    const [filas] = await pool.execute(
+      'SELECT id, nombre_usuario, rol FROM usuarios WHERE id = ?',
+      [req.params.id]
+    );
+    const cuenta = filas[0];
+    if (!cuenta) return res.status(404).json({ error: 'No existe ese usuario.' });
+
+    const solicitanteEsSuperAdministrador = req.usuario === superAdministrador;
+    const esCuentaPropia = cuenta.id === req.usuarioId;
+    const cuentaProtegida = esNombreSuperAdministrador(cuenta.nombre_usuario) || cuenta.rol === 'admin';
+
+    if (cuentaProtegida && !esCuentaPropia && !solicitanteEsSuperAdministrador) {
+      return res.status(403).json({ error: 'Solo el superadministrador puede modificar cuentas de administrador.' });
+    }
+    req.cuentaObjetivo = cuenta;
+    next();
+  } catch (error) {
+    console.error('Error al comprobar la cuenta:', error.code || error.message);
+    res.status(500).json({ error: 'No se pudo comprobar la cuenta.' });
+  }
+}
+
 app.post('/api/usuarios/login', async (req, res) => {
   const ip = req.ip || req.socket.remoteAddress || 'desconocida';
   if (!puedeContinuar(limitesLogin, ip, 10, 15 * 60 * 1000)) {
@@ -210,11 +272,19 @@ app.get('/api/mensaje-lateral', requerirInicioSesion, async (req, res) => {
     res.status(500).json({ error: 'No se pudo cargar el mensaje lateral.' });
   }
 });
-app.patch('/api/superadmin/usuarios/:id/nombre', requerirInicioSesion, requerirAdministrador, async (req, res) => {
+app.patch('/api/superadmin/usuarios/:id/nombre', requerirInicioSesion, requerirAdministrador, requerirCuentaGestionable, async (req, res) => {
   const nuevoNombre = String(req.body.nombre_usuario || '').trim();
 
   if (nuevoNombre.length < 3) {
     return res.status(400).json({ error: 'El nombre debe tener al menos 3 caracteres.' });
+  }
+  // El superadministrador se identifica por LOGIN_USERNAME: su nombre no se cambia desde la web
+  // y ninguna otra cuenta puede adoptarlo.
+  if (esNombreSuperAdministrador(req.cuentaObjetivo.nombre_usuario)) {
+    return res.status(403).json({ error: 'El nombre del superadministrador solo se cambia en la configuración del servidor.' });
+  }
+  if (esNombreSuperAdministrador(nuevoNombre)) {
+    return res.status(409).json({ error: 'Ese nombre de usuario está reservado.' });
   }
 
   try {
@@ -300,7 +370,7 @@ app.post('/api/superadmin/mensaje-lateral', requerirInicioSesion, requerirAdmini
   }
 });
 
-app.patch('/api/superadmin/usuarios/:id/contrasena', requerirInicioSesion, requerirAdministrador, async (req, res) => {
+app.patch('/api/superadmin/usuarios/:id/contrasena', requerirInicioSesion, requerirAdministrador, requerirCuentaGestionable, async (req, res) => {
   const contrasena = String(req.body.contrasena || '');
 
   if (contrasena.length < 8) {
@@ -317,6 +387,11 @@ app.patch('/api/superadmin/usuarios/:id/contrasena', requerirInicioSesion, reque
     if (resultado.affectedRows === 0) {
       return res.status(404).json({ error: 'No existe ese usuario.' });
     }
+    // Cierra las sesiones abiertas con la contraseña anterior (salvo la del propio administrador).
+    await pool.execute(
+      'DELETE FROM sesiones WHERE usuario_id = ? AND token_hash <> ?',
+      [req.params.id, hashToken(obtenerTokenSesion(req) || '')]
+    );
     res.json({ ok: true });
   } catch (error) {
     console.error('Error al cambiar contraseña:', error.code || error.message);
@@ -324,7 +399,7 @@ app.patch('/api/superadmin/usuarios/:id/contrasena', requerirInicioSesion, reque
   }
 });
 
-app.patch('/api/superadmin/usuarios/:id/cuota', requerirInicioSesion, requerirAdministrador, async (req, res) => {
+app.patch('/api/superadmin/usuarios/:id/cuota', requerirInicioSesion, requerirAdministrador, requerirCuentaGestionable, async (req, res) => {
   const megabytes = Number(req.body.megabytes);
   const bytes = megabytes * 1024 * 1024;
 
@@ -427,13 +502,57 @@ app.get('/api/archivos', requerirInicioSesion, async (req, res) => {
   }
 });
 
-app.post('/api/archivos', requerirInicioSesion, (req, res, next) => {
-  if (!puedeContinuar(limitesSubida, String(req.usuarioId), 30, 60 * 60 * 1000)) {
+// Todas las comprobaciones se hacen ANTES de leer el cuerpo, para no escribir en disco
+// archivos que luego se van a rechazar.
+async function prepararSubida(req, res, next) {
+  const clave = String(req.usuarioId);
+  if (subidasEnCurso.has(clave)) {
+    return res.status(429).json({ error: 'Ya tienes una subida en curso. Espera a que termine.' });
+  }
+  if (!puedeContinuar(limitesSubida, clave, 30, 60 * 60 * 1000)) {
     return res.status(429).json({ error: 'Has alcanzado el límite temporal de subidas. Inténtalo más tarde.' });
   }
-  subidaArchivo.single('archivo')(req, res, error => {
+
+  try {
+    const uso = await consultarUsoArchivos(req.usuarioId);
+    if (uso.total >= maximoArchivosPorUsuario) {
+      return res.status(413).json({ error: `Has alcanzado el máximo de ${maximoArchivosPorUsuario} archivos.` });
+    }
+
+    const disponibleBytes = uso.cuotaBytes - uso.usadosBytes;
+    const tamanoPeticion = Number(req.headers['content-length']) || 0;
+    if (disponibleBytes <= 0 || tamanoPeticion > disponibleBytes + margenMultipartBytes) {
+      res.setHeader('Connection', 'close');
+      return res.status(413).json({ error: 'El archivo no cabe en el espacio que te queda de tu cuota.' });
+    }
+
+    const disco = await fs.promises.statfs(directorioArchivos);
+    const libreBytes = disco.bavail * disco.bsize;
+    const previstoBytes = tamanoPeticion || disponibleBytes;
+    if (libreBytes - previstoBytes < espacioLibreMinimoBytes) {
+      res.setHeader('Connection', 'close');
+      return res.status(507).json({ error: 'El servidor no tiene espacio suficiente. Avisa a un administrador.' });
+    }
+
+    req.limiteSubidaBytes = disponibleBytes;
+  } catch (error) {
+    console.error('Error al preparar la subida:', error.code || error.message);
+    return res.status(500).json({ error: 'No se pudo preparar la subida.' });
+  }
+
+  // Una subida a la vez por usuario: evita que dos subidas simultáneas superen la cuota.
+  subidasEnCurso.add(clave);
+  res.on('close', () => subidasEnCurso.delete(clave));
+  next();
+}
+
+app.post('/api/archivos', requerirInicioSesion, prepararSubida, (req, res, next) => {
+  crearSubidaArchivo(req.limiteSubidaBytes)(req, res, error => {
     if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(413).json({ error: 'El archivo supera el límite máximo permitido de 10 GB.' });
+      return res.status(413).json({ error: 'El archivo no cabe en el espacio que te queda de tu cuota.' });
+    }
+    if (error instanceof multer.MulterError) {
+      return res.status(400).json({ error: 'La subida no es válida. Envía un único archivo.' });
     }
     if (error) return next(error);
     next();
@@ -442,24 +561,12 @@ app.post('/api/archivos', requerirInicioSesion, (req, res, next) => {
   if (!req.file) return res.status(400).json({ error: 'Selecciona un archivo.' });
 
   try {
-    const [filas] = await pool.execute(
-      'SELECT COALESCE(SUM(tamano_bytes), 0) AS usados FROM archivos_usuario WHERE usuario_id = ?',
-      [req.usuarioId]
-    );
-    const usados = Number(filas[0].usados);
-    const [conteo] = await pool.execute(
-      'SELECT COUNT(*) AS total FROM archivos_usuario WHERE usuario_id = ?',
-      [req.usuarioId]
-    );
-    if (Number(conteo[0].total) >= maximoArchivosPorUsuario) {
+    // Comprobación final por si la cuota cambió durante la subida.
+    const { cuotaBytes, usadosBytes: usados, total } = await consultarUsoArchivos(req.usuarioId);
+    if (total >= maximoArchivosPorUsuario) {
       await fs.promises.unlink(req.file.path).catch(() => {});
       return res.status(413).json({ error: `Has alcanzado el máximo de ${maximoArchivosPorUsuario} archivos.` });
     }
-    const [cuota] = await pool.execute(
-      'SELECT cuota_archivos_bytes FROM usuarios WHERE id = ?',
-      [req.usuarioId]
-    );
-    const cuotaBytes = Number(cuota[0].cuota_archivos_bytes);
     if (usados + req.file.size > cuotaBytes) {
       await fs.promises.unlink(req.file.path).catch(() => {});
       return res.status(413).json({ error: 'Has superado tu cuota de almacenamiento.' });
@@ -521,6 +628,19 @@ app.get('/api/comentarios', requerirInicioSesion, async (req, res) => {
   } catch (error) {
     console.error('Error al consultar comentarios:', error.code || error.message);
     res.status(500).json({ error: 'No se pudieron cargar los comentarios.' });
+  }
+});
+
+// Las reseñas son los comentarios de la portada más los de la página de cada juego.
+app.get('/api/estadisticas', requerirInicioSesion, async (req, res) => {
+  try {
+    const [filas] = await pool.execute(
+      `SELECT (SELECT COUNT(*) FROM comentarios) + (SELECT COUNT(*) FROM comentarios_juegos) AS resenas`
+    );
+    res.json({ resenas: Number(filas[0].resenas) });
+  } catch (error) {
+    console.error('Error al calcular estadísticas:', error.code || error.message);
+    res.status(500).json({ error: 'No se pudieron cargar las estadísticas.' });
   }
 });
 
@@ -1049,8 +1169,8 @@ async function iniciarServidor() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
 
-  app.listen(PORT, () => {
-    console.log(`Servidor corriendo en http://localhost:${PORT}`);
+  app.listen(PORT, HOST, () => {
+    console.log(`Servidor corriendo en http://${HOST}:${PORT}`);
   });
 }
 

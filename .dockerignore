@@ -1,0 +1,11 @@
+node_modules
+storage
+.env
+.env.*
+usuarios.json
+memoria-soluciones
+configurar-credenciales.bat
+configurar-credenciales.ps1
+cambiar-credenciales.bat
+cambiar-credenciales.ps1
+.git

@@ -64,7 +64,10 @@
       return extension.slice(0, 4);
     }
 
+    let espacioDisponibleBytes = Infinity;
+
     function mostrarArchivos(datos) {
+      espacioDisponibleBytes = datos.cuotaBytes - datos.usadosBytes;
       const porcentaje = Math.min(100, datos.usadosBytes / datos.cuotaBytes * 100);
       cuotaTexto.textContent = `${formatearBytes(datos.usadosBytes)} de ${formatearBytes(datos.cuotaBytes)}`;
       cuotaProgreso.style.width = `${porcentaje}%`;
@@ -132,6 +135,12 @@
     entradaArchivo.addEventListener('change', async () => {
       const archivo = entradaArchivo.files[0];
       if (!archivo) return;
+      if (archivo.size > espacioDisponibleBytes) {
+        mensaje.textContent = `${archivo.name} no cabe en tu cuota: te quedan ${formatearBytes(Math.max(0, espacioDisponibleBytes))}.`;
+        mensaje.classList.add('error');
+        entradaArchivo.value = '';
+        return;
+      }
       const datos = new FormData();
       datos.append('archivo', archivo);
       mensaje.classList.remove('error');
