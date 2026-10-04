@@ -1329,3 +1329,15 @@ body > .cabecera-pagina {
 .acciones-cuenta form {
   margin: 0;
 }
+
+/* Formularios de cuenta (invitar usuario, cambiar contraseña): ancho cómodo para escribir */
+.formulario-cuenta {
+  max-width: 640px;
+}
+
+.ayuda-formulario {
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-size: 0.65rem;
+  line-height: 1.7;
+}

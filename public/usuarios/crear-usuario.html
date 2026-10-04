@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Invitar usuario - Frikicoments</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/styles.css?v=20261004-3">
 </head>
 <body>
@@ -24,15 +25,17 @@
     </header>
 
     <section class="card">
-      <form class="form-box" id="form-crear-usuario">
+      <h2 class="panel-title">Nueva cuenta</h2>
+      <p class="ayuda-formulario">Crea la cuenta y comparte la contraseña inicial en privado con la persona invitada.</p>
+      <form class="form-box formulario-cuenta" id="form-crear-usuario">
         <label for="usuario">Nombre de usuario</label>
-        <input id="usuario" name="usuario" type="text" minlength="3" autocomplete="username" required>
+        <input id="usuario" name="usuario" type="text" minlength="3" placeholder="Mínimo 3 caracteres" autocomplete="off" required>
 
         <label for="contrasena">Contraseña inicial para la persona invitada</label>
-        <input id="contrasena" name="contrasena" type="password" minlength="8" autocomplete="new-password" required>
+        <input id="contrasena" name="contrasena" type="password" minlength="8" placeholder="Mínimo 8 caracteres" autocomplete="new-password" required>
 
         <label for="confirmar-contrasena">Repetir contraseña</label>
-        <input id="confirmar-contrasena" name="confirmar-contrasena" type="password" minlength="8" autocomplete="new-password" required>
+        <input id="confirmar-contrasena" name="confirmar-contrasena" type="password" minlength="8" placeholder="Repite la contraseña" autocomplete="new-password" required>
 
         <button class="btn primary" type="submit">Crear cuenta invitada</button>
         <p class="auth-message" id="mensaje" role="status" aria-live="polite"></p>
