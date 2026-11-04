@@ -26,7 +26,6 @@ async function comprobarSesion() {
   $('#account-actions').hidden = false;
   $('#contenido-principal').hidden = false;
 
-  comprobarConexion();
   cargarAviso();
   cargarChat();
   cargarResenas();
@@ -63,19 +62,7 @@ $('#logout-button').addEventListener('click', async () => {
   }
 });
 
-// ---- Estado del sitio, aviso del administrador y estadísticas ----
-async function comprobarConexion() {
-  const estado = $('#estado-sitio');
-  try {
-    const { ok } = await api('/api/health');
-    estado.textContent = ok ? 'Conexión MySQL OK' : 'MySQL no disponible';
-    estado.classList.toggle('caido', !ok);
-  } catch {
-    estado.textContent = 'Sin conexión';
-    estado.classList.add('caido');
-  }
-}
-
+// ---- Aviso del administrador y estadísticas ----
 async function cargarAviso() {
   const aviso = await api('/api/mensaje-lateral').catch(() => null);
   if (!aviso) return;
@@ -160,7 +147,7 @@ async function cargarResenas() {
   try {
     const resenas = await api('/api/resenas');
     if (!resenas.length) {
-      lista.replaceChildren(crear('p', { clase: 'status', texto: 'Todavía no hay comentarios. ¡Publica el primero!' }));
+      lista.replaceChildren(crear('p', { clase: 'card admin-ayuda', texto: 'Todavía no hay comentarios. ¡Publica el primero!' }));
       return;
     }
     lista.replaceChildren(...resenas.map(resena => {
@@ -182,7 +169,7 @@ async function cargarResenas() {
       return articulo;
     }));
   } catch (error) {
-    lista.replaceChildren(crear('p', { clase: 'status', texto: error.message }));
+    lista.replaceChildren(crear('p', { clase: 'card auth-message error', texto: error.message }));
   }
 }
 

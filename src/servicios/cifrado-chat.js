@@ -59,4 +59,4 @@ function descifrar(valor, usuarioId) {
   }
 }
 
-module.exports = { cifrar, descifrar, obtenerClave, ErrorCifradoChat, VERSION };
+module.exports = { cifrar, descifrar, ErrorCifradoChat };

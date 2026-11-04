@@ -25,6 +25,7 @@
   display: flex;
   flex-direction: column;
   transition: transform 0.1s ease, box-shadow 0.1s ease;
+  cursor: pointer;
 }
 
 .juego-card:hover {
@@ -88,20 +89,10 @@
   gap: 16px;
 }
 
+/* Se usan junto a .btn .primary: letra más pequeña y sin mayúsculas */
 .btn-pag {
-  font-family: inherit;
   font-size: 0.65rem;
-  padding: 10px 14px;
-  color: #ffffff;
-  background: var(--accent-blue);
-  border: 4px solid var(--pixel-border);
-  box-shadow: 4px 4px 0 #000000;
-  cursor: pointer;
-}
-
-.btn-pag:active {
-  transform: translate(3px, 3px);
-  box-shadow: 1px 1px 0 #000000;
+  text-transform: none;
 }
 
 .btn-pag:disabled {
@@ -119,10 +110,6 @@
 
 .grid .status-msg {
   grid-column: 1 / -1;
-}
-
-.juego-card {
-  cursor: pointer;
 }
 
 .juego-card:focus-visible {

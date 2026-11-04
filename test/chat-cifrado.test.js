@@ -1,10 +1,9 @@
-// Cifrado en reposo del chat de la portada (AES-256-GCM) y migración de los mensajes antiguos.
+// Cifrado en reposo del chat de la portada (AES-256-GCM).
 const { test, before, after, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('crypto');
 const { pool, arrancar, parar, conSesion, peticion } = require('./ayuda');
 const { cifrar, descifrar, ErrorCifradoChat } = require('../src/servicios/cifrado-chat');
-const { cifrarMensajesPendientes, contarPendientes, comprobarCifrados } = require('../src/servicios/migrar-chat');
 
 const claveOriginal = process.env.CHAT_ENCRYPTION_KEY;
 const otraClave = () => crypto.randomBytes(32).toString('base64');
@@ -20,7 +19,7 @@ after(parar);
 const fallaCon = codigo => error => error instanceof ErrorCifradoChat && error.codigo === codigo;
 const enviar = contenido => peticion('/api/chat', { metodo: 'POST', cookie: ana.cookie, datos: { contenido } });
 const leer = () => peticion('/api/chat', { cookie: ana.cookie });
-const filaDe = async id => (await pool.execute('SELECT contenido, contenido_cifrado FROM chat_mensajes WHERE id = ?', [id]))[0][0];
+const filaDe = async id => (await pool.execute('SELECT contenido_cifrado FROM chat_mensajes WHERE id = ?', [id]))[0][0];
 
 // ---- Servicio de cifrado ----
 test('cifra y descifra (también emojis y acentos) con formato versionado', () => {
@@ -71,10 +70,16 @@ test('los mensajes nuevos se guardan cifrados y se leen descifrados', async () =
   const enviado = await enviar('hola cifrado');
   assert.equal(enviado.estado, 201);
   const fila = await filaDe(enviado.datos.id);
-  assert.equal(fila.contenido, null);
   assert.match(fila.contenido_cifrado, /^v1:/);
   assert.ok(!fila.contenido_cifrado.includes('hola'));
   assert.equal((await leer()).datos.at(-1).contenido, 'hola cifrado');
+});
+
+test('la tabla del chat no tiene columna de texto plano', async () => {
+  const [columnas] = await pool.query(
+    "SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'chat_mensajes' AND column_name = 'contenido'"
+  );
+  assert.equal(columnas.length, 0);
 });
 
 test('se mantiene el límite de 500 caracteres', async () => {
@@ -106,40 +111,5 @@ test('un mensaje alterado en la base da un error seguro, sin mostrar el cifrado'
   assert.equal(lectura.estado, 500);
   assert.match(lectura.datos.error, /No se pudieron leer/);
   assert.ok(!lectura.texto.includes('v1:'));
-  assert.deepEqual((await comprobarCifrados()).fallidos, [datos.id]);
   await pool.execute('DELETE FROM chat_mensajes WHERE id = ?', [datos.id]);
-});
-
-// ---- Mensajes antiguos y migración ----
-test('los mensajes antiguos en texto plano se leen y la migración los cifra una sola vez', async () => {
-  const ids = [];
-  for (const texto of ['antiguo uno', 'antiguo dos', 'antiguo tres']) {
-    const [resultado] = await pool.execute('INSERT INTO chat_mensajes (usuario_id, contenido) VALUES (?, ?)', [ana.id, texto]);
-    ids.push(resultado.insertId);
-  }
-  assert.ok((await leer()).datos.some(m => m.contenido === 'antiguo dos'));
-  assert.equal(await contarPendientes(), 3);
-
-  // Simula una ejecución interrumpida: el primero ya quedó cifrado.
-  const yaCifrado = cifrar('antiguo uno', ana.id);
-  await pool.execute('UPDATE chat_mensajes SET contenido_cifrado = ?, contenido = NULL WHERE id = ?', [yaCifrado, ids[0]]);
-
-  assert.equal(await cifrarMensajesPendientes({ lote: 1 }), 2);
-  assert.equal(await cifrarMensajesPendientes(), 0); // segunda vez: nada que hacer
-  assert.equal(await contarPendientes(), 0);
-  assert.equal((await filaDe(ids[0])).contenido_cifrado, yaCifrado); // no se cifró dos veces
-  for (const id of ids) assert.equal((await filaDe(id)).contenido, null);
-
-  const textos = (await leer()).datos.map(m => m.contenido);
-  for (const texto of ['antiguo uno', 'antiguo dos', 'antiguo tres']) assert.ok(textos.includes(texto), texto);
-  assert.deepEqual((await comprobarCifrados()).fallidos, []);
-});
-
-test('la migración no hace nada sin clave', async () => {
-  await pool.execute('INSERT INTO chat_mensajes (usuario_id, contenido) VALUES (?, ?)', [ana.id, 'pendiente']);
-  process.env.CHAT_ENCRYPTION_KEY = '';
-  await assert.rejects(cifrarMensajesPendientes(), fallaCon('SIN_CLAVE'));
-  process.env.CHAT_ENCRYPTION_KEY = claveOriginal;
-  assert.equal(await contarPendientes(), 1);
-  await cifrarMensajesPendientes();
 });

@@ -64,7 +64,6 @@ Los mensajes del chat de la portada se guardan cifrados con AES-256-GCM: si algu
   `printf 'CHAT_ENCRYPTION_KEY=%s\n' "$(node -e "console.log(require('crypto').randomBytes(32).toString('base64'))")" >> .env`
 - **Guarda una copia de la clave aparte de las copias de la base** (por ejemplo, en un gestor de contraseñas). Sin ella, los mensajes cifrados no se pueden recuperar.
 - Sin clave, el chat responde con un error claro y no guarda nada en texto plano.
-- Los mensajes antiguos en texto plano se cifran con `node scripts/cifrar-chat.js` (`--comprobar` solo cuenta y verifica). Se puede repetir o interrumpir sin peligro.
 
 ### Inicializar una instalación nueva
 

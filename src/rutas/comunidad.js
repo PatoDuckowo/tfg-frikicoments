@@ -12,7 +12,6 @@ const router = express.Router();
 
 // ---- Chat de la portada (los mensajes duran 24 horas) y aviso lateral ----
 // Los mensajes se guardan cifrados (AES-256-GCM, ver servicios/cifrado-chat.js).
-// Los antiguos en texto plano se leen tal cual hasta que scripts/cifrar-chat.js los cifra.
 const errorSinClave = { estado: 503, error: 'El chat no está disponible: falta configurar el cifrado en el servidor.' };
 const errorDescifrado = { estado: 500, error: 'No se pudieron leer los mensajes del chat. Avisa a un administrador.' };
 
@@ -25,23 +24,20 @@ function responderErrorCifrado(res, error, mensajeId) {
 
 router.get('/api/chat', requerirInicioSesion, async (req, res) => {
   const [filas] = await pool.execute(
-    `SELECT c.id, c.usuario_id, u.nombre_usuario AS usuario, c.contenido, c.contenido_cifrado, c.creado_en
+    `SELECT c.id, c.usuario_id, u.nombre_usuario AS usuario, c.contenido_cifrado, c.creado_en
      FROM chat_mensajes c INNER JOIN usuarios u ON u.id = c.usuario_id
      WHERE c.creado_en > DATE_SUB(NOW(), INTERVAL 24 HOUR)
      ORDER BY c.creado_en DESC, c.id DESC LIMIT 50`
   );
   const mensajes = [];
   for (const fila of filas.reverse()) {
-    let contenido = fila.contenido; // mensaje antiguo, aún sin cifrar
-    if (fila.contenido_cifrado !== null) {
-      try {
-        contenido = descifrar(fila.contenido_cifrado, fila.usuario_id);
-      } catch (error) {
-        if (error instanceof ErrorCifradoChat) return responderErrorCifrado(res, error, fila.id);
-        throw error;
-      }
+    try {
+      const contenido = descifrar(fila.contenido_cifrado, fila.usuario_id);
+      mensajes.push({ id: fila.id, usuario: fila.usuario, contenido, creado_en: fila.creado_en });
+    } catch (error) {
+      if (error instanceof ErrorCifradoChat) return responderErrorCifrado(res, error, fila.id);
+      throw error;
     }
-    mensajes.push({ id: fila.id, usuario: fila.usuario, contenido, creado_en: fila.creado_en });
   }
   res.json(mensajes);
 });
