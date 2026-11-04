@@ -18,6 +18,10 @@ const router = express.Router();
 const limitesLogin = crearRegistro();
 const fallosLogin = new Map(); // clave -> { cantidad, ultimo }
 const bloqueosLogin = new Map(); // clave -> fecha (ms) hasta la que está bloqueado
+// Hash de una contraseña aleatoria con el mismo coste (12) que las reales. Si el usuario no existe,
+// se compara con él: el login tarda lo mismo y el tiempo de respuesta no revela qué nombres existen.
+// Se calcula una vez al arrancar; es una promesa y el login la espera con await.
+const hashFicticio = bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
 
 function obtenerBloqueo(clave) {
   const hasta = bloqueosLogin.get(clave) || 0;
@@ -61,7 +65,9 @@ router.post('/api/usuarios/login', async (req, res) => {
     [usuario]
   );
   const cuenta = filas[0];
-  const valida = cuenta && await bcrypt.compare(contrasena, cuenta.password_hash);
+  // bcrypt se ejecuta siempre, exista o no la cuenta (ver hashFicticio).
+  const coincide = await bcrypt.compare(contrasena, cuenta ? cuenta.password_hash : await hashFicticio);
+  const valida = Boolean(cuenta) && coincide;
   // JSON.stringify evita que un nombre con saltos de línea falsee el log.
   if (!valida) {
     console.warn(`[LOGIN FALLIDO] Usuario: ${JSON.stringify(usuario.slice(0, 80))} | IP: ${ip}`);

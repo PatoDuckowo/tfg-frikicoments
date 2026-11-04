@@ -19,6 +19,8 @@ async function comprobarSesion() {
   const nombreCuenta = $('#account-name');
   nombreCuenta.textContent = `Sesión: ${datos.usuario}`;
   nombreCuenta.href = `/usuarios/perfil.html?u=${encodeURIComponent(datos.usuario)}`;
+  // Invitar y gestionar usuarios es solo para administradores (el servidor también lo comprueba).
+  $('#invite-link').hidden = !datos.esAdministrador;
   $('#superadmin-link').hidden = !datos.esAdministrador;
   formularioLogin.hidden = true;
   $('#account-actions').hidden = false;

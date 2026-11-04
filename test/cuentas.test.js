@@ -40,6 +40,15 @@ test('contraseña incorrecta: 401, y tras 5 fallos se bloquea con 429', async ()
   assert.ok(bloqueado.cabeceras.get('retry-after'));
 });
 
+test('usuario inexistente: el mismo 401 y el mismo mensaje que con una contraseña incorrecta', async () => {
+  await crearUsuario('existe');
+  const contrasenaMala = await entrar('existe', 'mala');
+  const noExiste = await entrar('no_existe', 'mala');
+  assert.equal(contrasenaMala.estado, 401);
+  assert.equal(noExiste.estado, 401);
+  assert.deepEqual(noExiste.datos, contrasenaMala.datos);
+});
+
 test('logout borra la sesión', async () => {
   const { cookie } = await conSesion('salir');
   const respuesta = await peticion('/api/usuarios/logout', { metodo: 'POST', cookie });
