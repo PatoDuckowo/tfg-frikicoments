@@ -20,6 +20,9 @@ services:
   web:
     build: .
     restart: unless-stopped
+    # Node no atiende las señales cuando es el proceso 1: con init, parar el contenedor es inmediato
+    # en vez de esperar 10 s a que Docker lo mate.
+    init: true
     # Como mucho 2 de los 4 núcleos de la Pi: el resto de servicios sigue respondiendo.
     cpus: 2.0
     # Solo accesible desde la propia máquina: Tailscale Funnel es la única entrada.

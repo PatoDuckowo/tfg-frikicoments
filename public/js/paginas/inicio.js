@@ -87,9 +87,16 @@ const chatMensajes = $('#chat-mensajes');
 const chatForm = $('#chat-form');
 let actualizandoChat = false;
 
-async function cargarChat() {
+// Los mensajes van del más antiguo al más nuevo: el último queda abajo.
+const chatAbajo = () => chatMensajes.scrollHeight - chatMensajes.scrollTop - chatMensajes.clientHeight < 40;
+const bajarChat = () => { chatMensajes.scrollTop = chatMensajes.scrollHeight; };
+
+// Si se estaba viendo el final (o se pide con `bajar`), se sigue viendo el último mensaje;
+// si se estaban leyendo mensajes anteriores, la lista no se mueve.
+async function cargarChat({ bajar = false } = {}) {
   try {
     const mensajes = await api('/api/chat');
+    const seguirAbajo = bajar || chatAbajo();
     chatMensajes.replaceChildren(...mensajes.map(mensaje => {
       const elemento = crear('article', { clase: 'chat-mensaje' }, [
         crear('strong', {}, [enlacePerfil(mensaje.usuario)]),
@@ -99,6 +106,7 @@ async function cargarChat() {
       return elemento;
     }));
     if (window.innerWidth > 800) chat.hidden = false;
+    if (seguirAbajo) bajarChat();
   } catch (error) {
     // Se muestra el motivo (p. ej. cifrado sin configurar) en vez de ocultar el chat sin más.
     chatMensajes.replaceChildren(crear('p', { clase: 'auth-message error', texto: error.message }));
@@ -122,6 +130,7 @@ function cerrarChat() {
 
 $('#chat-toggle').addEventListener('click', () => {
   chat.hidden = false;
+  bajarChat();
   document.body.classList.add('chat-abierto');
   window.history.pushState({ chat: true }, '', window.location.href);
 });
@@ -135,7 +144,7 @@ chatForm.addEventListener('submit', async evento => {
   try {
     await api('/api/chat', { metodo: 'POST', datos: { contenido: chatForm.contenido.value } });
     chatForm.reset();
-    await cargarChat();
+    await cargarChat({ bajar: true });
   } catch (error) {
     avisar(aviso, error.message, true);
   }
