@@ -93,7 +93,7 @@ router.patch('/api/superadmin/usuarios/:id/cuota', cuentaGestionable, async (req
   const megabytes = Number(req.body.megabytes);
   const bytes = megabytes * 1024 * 1024;
   if (!Number.isInteger(megabytes) || bytes < config.archivos.cuotaPorDefectoBytes || bytes > config.archivos.cuotaMaximaBytes) {
-    return res.status(400).json({ error: 'La cuota debe ser un número entero entre 500 MB y 10 GB.' });
+    return res.status(400).json({ error: 'La cuota debe ser un número entero entre 500 MB y 50 GB.' });
   }
   await pool.execute('UPDATE usuarios SET cuota_archivos_bytes = ? WHERE id = ?', [bytes, req.cuentaObjetivo.id]);
   res.json({ ok: true, cuotaBytes: bytes });

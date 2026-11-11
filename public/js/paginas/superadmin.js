@@ -68,7 +68,7 @@ function crearTarjeta(usuario) {
     id: `contrasena-${id}`, name: 'contrasena', type: 'password', minLength: 8, autocomplete: 'new-password', placeholder: 'Mínimo 8 caracteres', required: true
   });
   const cuota = crear('input', {
-    id: `cuota-${id}`, name: 'megabytes', type: 'number', min: '500', max: '10240', step: '1',
+    id: `cuota-${id}`, name: 'megabytes', type: 'number', min: '500', max: '51200', step: '1',
     value: String(Math.round(Number(usuario.cuota_archivos_bytes) / 1024 / 1024)), required: true
   });
 

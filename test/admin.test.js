@@ -35,9 +35,12 @@ test('un admin gestiona cuentas normales, la suya, pero no la de otro admin ni l
   assert.equal((await cambiarCuota(admin, 999999, 600)).estado, 404);
 });
 
-test('la cuota debe estar entre 500 MB y 10 GB', async () => {
+test('la cuota debe estar entre 500 MB y 50 GB', async () => {
   assert.equal((await cambiarCuota(admin, usuario.id, 499)).estado, 400);
-  assert.equal((await cambiarCuota(admin, usuario.id, 10241)).estado, 400);
+  assert.equal((await cambiarCuota(admin, usuario.id, 51201)).estado, 400);
+  assert.equal((await cambiarCuota(admin, usuario.id, 51200)).estado, 200);
+  const lista = await peticion('/api/superadmin/usuarios', { cookie: admin.cookie });
+  assert.equal(Number(lista.datos.find(c => c.id === usuario.id).cuota_archivos_bytes), 50 * 1024 ** 3);
   assert.equal((await cambiarCuota(admin, usuario.id, 'mucho')).estado, 400);
 });
 

@@ -38,7 +38,7 @@ module.exports = {
 
   archivos: {
     cuotaPorDefectoBytes: 500 * MB,
-    cuotaMaximaBytes: 10 * GB,
+    cuotaMaximaBytes: 50 * GB,
     maximoPorUsuario: 1000,
     // Espacio que siempre debe quedar libre en el disco tras una subida.
     espacioLibreMinimoBytes: 5 * GB,
